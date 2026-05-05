@@ -3,6 +3,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
+import { useTheme } from 'next-themes';
 import { 
   LayoutDashboard, 
   Package, 
@@ -13,6 +14,7 @@ import {
   Search,
   Bell,
   Moon,
+  Sun,
   ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -38,8 +40,10 @@ const navItems = [
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const { settings } = useApp();
+  const { theme, setTheme } = useTheme();
   
   const userName = settings?.userName || "Usuário";
+  const systemName = settings?.systemName || "PrintSaaS";
   const userInitials = userName.substring(0, 2).toUpperCase();
 
   const SidebarContent = () => (
@@ -48,7 +52,9 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         <div className="w-8 h-8 orange-gradient rounded-lg flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
           <PrinterIcon size={18} />
         </div>
-        <span className="text-xl font-bold tracking-tight">Print<span className="text-primary">SaaS</span></span>
+        <span className="text-xl font-bold tracking-tight">
+          {systemName}
+        </span>
       </div>
       
       <nav className="flex-1 space-y-8">
@@ -95,7 +101,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   );
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden font-sans dark">
+    <div className="flex h-screen bg-background overflow-hidden font-sans">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:block w-64 flex-shrink-0 border-r border-border/50">
         <SidebarContent />
@@ -115,6 +121,15 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           </div>
 
           <div className="flex items-center gap-6">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="rounded-full text-muted-foreground"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </Button>
+            
             <div className="hidden md:flex items-center gap-2 bg-secondary/50 px-3 py-1.5 rounded-full text-xs font-medium">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               Sistema Online

@@ -44,6 +44,7 @@ export interface Printer {
 
 export interface Settings {
   userName: string;
+  systemName: string;
   filamentPricePerKg: number;
   energyCostPerHour: number;
   channelFees: Record<SaleChannel, number>;
@@ -104,6 +105,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('printsaas_settings');
     return saved ? JSON.parse(saved) : {
       userName: 'Oliver',
+      systemName: 'PrintSaaS',
       filamentPricePerKg: 120,
       energyCostPerHour: 0.85,
       channelFees: {
