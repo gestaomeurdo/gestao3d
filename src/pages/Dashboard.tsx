@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { 
   TrendingUp, 
@@ -9,7 +9,8 @@ import {
   ArrowUpRight, 
   ArrowDownRight,
   Zap,
-  Clock
+  Clock,
+  Calendar
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -21,12 +22,14 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  Cell
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 const Dashboard = () => {
-  const { sales, products, expenses, settings, calculateProductCost } = useApp();
+  const { sales, products, expenses, printers, settings, calculateProductCost } = useApp();
+  const [period, setPeriod] = useState('month');
 
   // Cálculos de métricas
   const totalRevenue = sales.reduce((acc, sale) => {
@@ -45,15 +48,17 @@ const Dashboard = () => {
 
   const netProfit = totalRevenue - totalCosts;
   const margin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+  
+  const totalInvestment = printers.reduce((acc, p) => acc + p.purchasePrice, 0);
+  const globalROI = totalInvestment > 0 ? (netProfit / totalInvestment) * 100 : 0;
 
   const stats = [
     { title: 'Receita Total', value: `${settings.currency} ${totalRevenue.toFixed(2)}`, icon: DollarSign, color: 'text-blue-500', trend: '+12.5%', trendUp: true },
     { title: 'Lucro Líquido', value: `${settings.currency} ${netProfit.toFixed(2)}`, icon: TrendingUp, color: 'text-emerald-500', trend: '+8.2%', trendUp: true },
-    { title: 'Custos Totais', value: `${settings.currency} ${totalCosts.toFixed(2)}`, icon: Package, color: 'text-orange-500', trend: '-2.4%', trendUp: false },
-    { title: 'Margem Média', value: `${margin.toFixed(1)}%`, icon: Zap, color: 'text-purple-500', trend: '+1.2%', trendUp: true },
+    { title: 'ROI Global', value: `${globalROI.toFixed(1)}%`, icon: Zap, color: 'text-purple-500', trend: 'Payback em progresso', trendUp: globalROI >= 100 },
+    { title: 'Margem Média', value: `${margin.toFixed(1)}%`, icon: Package, color: 'text-orange-500', trend: '+1.2%', trendUp: true },
   ];
 
-  // Dados fictícios para os gráficos (em um app real viriam do estado filtrado por data)
   const chartData = [
     { name: 'Seg', vendas: 400, lucro: 240 },
     { name: 'Ter', vendas: 300, lucro: 139 },
@@ -66,9 +71,26 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-3xl font-bold text-white tracking-tight">Dashboard</h1>
-        <p className="text-zinc-400 mt-1">Visão geral da sua operação de impressão 3D.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Dashboard</h1>
+          <p className="text-zinc-400 mt-1">Visão geral da sua operação de impressão 3D.</p>
+        </div>
+        
+        <div className="flex items-center gap-2 bg-zinc-900 p-1 rounded-lg border border-zinc-800">
+          <Calendar size={16} className="text-zinc-500 ml-2" />
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-[140px] bg-transparent border-none text-zinc-300 focus:ring-0">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+              <SelectItem value="day">Hoje</SelectItem>
+              <SelectItem value="week">Esta Semana</SelectItem>
+              <SelectItem value="month">Este Mês</SelectItem>
+              <SelectItem value="year">Este Ano</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -90,7 +112,6 @@ const Dashboard = () => {
                 <span className={cn("text-xs font-medium", stat.trendUp ? "text-emerald-500" : "text-rose-500")}>
                   {stat.trend}
                 </span>
-                <span className="text-xs text-zinc-500 ml-1">vs mês anterior</span>
               </div>
             </CardContent>
           </Card>
@@ -136,43 +157,6 @@ const Dashboard = () => {
                 <Bar dataKey="lucro" fill="#f97316" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Secondary KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="pt-6 flex items-center gap-4">
-            <div className="p-3 bg-blue-500/10 rounded-full">
-              <Clock className="text-blue-500" size={24} />
-            </div>
-            <div>
-              <p className="text-sm text-zinc-400">Custo Energia/Hora</p>
-              <p className="text-xl font-bold text-white">{settings.currency} {settings.energyCostPerHour.toFixed(2)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="pt-6 flex items-center gap-4">
-            <div className="p-3 bg-orange-500/10 rounded-full">
-              <Package className="text-orange-500" size={24} />
-            </div>
-            <div>
-              <p className="text-sm text-zinc-400">Filamento Médio/kg</p>
-              <p className="text-xl font-bold text-white">{settings.currency} {settings.filamentPricePerKg.toFixed(2)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="pt-6 flex items-center gap-4">
-            <div className="p-3 bg-purple-500/10 rounded-full">
-              <TrendingUp className="text-purple-500" size={24} />
-            </div>
-            <div>
-              <p className="text-sm text-zinc-400">ROI Estimado</p>
-              <p className="text-xl font-bold text-white">145%</p>
-            </div>
           </CardContent>
         </Card>
       </div>

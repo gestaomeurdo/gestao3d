@@ -34,6 +34,14 @@ export interface Expense {
   description: string;
 }
 
+export interface Printer {
+  id: string;
+  name: string;
+  purchasePrice: number;
+  purchaseDate: string;
+  status: 'disponível' | 'imprimindo' | 'manutenção';
+}
+
 export interface Settings {
   filamentPricePerKg: number;
   energyCostPerHour: number;
@@ -45,12 +53,15 @@ interface AppContextType {
   products: Product[];
   sales: Sale[];
   expenses: Expense[];
+  printers: Printer[];
   settings: Settings;
   addProduct: (product: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, product: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
   addSale: (sale: Omit<Sale, 'id'>) => void;
   addExpense: (expense: Omit<Expense, 'id'>) => void;
+  addPrinter: (printer: Omit<Printer, 'id'>) => void;
+  deletePrinter: (id: string) => void;
   updateSettings: (settings: Partial<Settings>) => void;
   calculateProductCost: (product: Product) => number;
 }
@@ -58,31 +69,60 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>([
-    { id: '1', name: 'Vaso Decorativo Low Poly', weightGrams: 150, printTimeMinutes: 480, filamentType: 'PLA', salePrice: 85 },
-    { id: '2', name: 'Suporte de Headset', weightGrams: 80, printTimeMinutes: 180, filamentType: 'PETG', salePrice: 45 },
-  ]);
-
-  const [sales, setSales] = useState<Sale[]>([
-    { id: '1', date: new Date().toISOString(), productId: '1', quantity: 2, channel: 'Mercado Livre', status: 'entregue' },
-    { id: '2', date: new Date().toISOString(), productId: '2', quantity: 1, channel: 'Direto', status: 'pago' },
-  ]);
-
-  const [expenses, setExpenses] = useState<Expense[]>([
-    { id: '1', category: 'filamento', amount: 120, date: new Date().toISOString(), description: 'Rolo PLA Branco 1kg' },
-  ]);
-
-  const [settings, setSettings] = useState<Settings>({
-    filamentPricePerKg: 120,
-    energyCostPerHour: 0.85,
-    channelFees: {
-      'Mercado Livre': 16.5,
-      'Shopee': 14,
-      'Direto': 0,
-      'Instagram': 0,
-    },
-    currency: 'R$',
+  // Inicialização com dados do localStorage ou padrões
+  const [products, setProducts] = useState<Product[]>(() => {
+    const saved = localStorage.getItem('printsaas_products');
+    return saved ? JSON.parse(saved) : [
+      { id: '1', name: 'Vaso Decorativo Low Poly', weightGrams: 150, printTimeMinutes: 480, filamentType: 'PLA', salePrice: 85 },
+      { id: '2', name: 'Suporte de Headset', weightGrams: 80, printTimeMinutes: 180, filamentType: 'PETG', salePrice: 45 },
+    ];
   });
+
+  const [sales, setSales] = useState<Sale[]>(() => {
+    const saved = localStorage.getItem('printsaas_sales');
+    return saved ? JSON.parse(saved) : [
+      { id: '1', date: new Date().toISOString(), productId: '1', quantity: 2, channel: 'Mercado Livre', status: 'entregue' },
+      { id: '2', date: new Date().toISOString(), productId: '2', quantity: 1, channel: 'Direto', status: 'pago' },
+    ];
+  });
+
+  const [expenses, setExpenses] = useState<Expense[]>(() => {
+    const saved = localStorage.getItem('printsaas_expenses');
+    return saved ? JSON.parse(saved) : [
+      { id: '1', category: 'filamento', amount: 120, date: new Date().toISOString(), description: 'Rolo PLA Branco 1kg' },
+    ];
+  });
+
+  const [printers, setPrinters] = useState<Printer[]>(() => {
+    const saved = localStorage.getItem('printsaas_printers');
+    return saved ? JSON.parse(saved) : [
+      { id: '1', name: 'Ender 3 V3 SE', purchasePrice: 1500, purchaseDate: '2023-10-01', status: 'disponível' },
+    ];
+  });
+
+  const [settings, setSettings] = useState<Settings>(() => {
+    const saved = localStorage.getItem('printsaas_settings');
+    return saved ? JSON.parse(saved) : {
+      filamentPricePerKg: 120,
+      energyCostPerHour: 0.85,
+      channelFees: {
+        'Mercado Livre': 16.5,
+        'Shopee': 14,
+        'Direto': 0,
+        'Instagram': 0,
+      },
+      currency: 'R$',
+    };
+  });
+
+  // Persistência
+  useEffect(() => {
+    localStorage.setItem('printsaas_products', JSON.stringify(products));
+    localStorage.setItem('printsaas_sales', JSON.stringify(sales));
+    localStorage.setItem('printsaas_expenses', JSON.stringify(expenses));
+    localStorage.setItem('printsaas_printers', JSON.stringify(printers));
+    localStorage.setItem('printsaas_settings', JSON.stringify(settings));
+  }, [products, sales, expenses, printers, settings]);
 
   const calculateProductCost = (product: Product) => {
     const filamentCost = (product.weightGrams / 1000) * settings.filamentPricePerKg;
@@ -110,15 +150,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setExpenses([...expenses, { ...expense, id: Math.random().toString(36).substr(2, 9) }]);
   };
 
+  const addPrinter = (printer: Omit<Printer, 'id'>) => {
+    setPrinters([...printers, { ...printer, id: Math.random().toString(36).substr(2, 9) }]);
+  };
+
+  const deletePrinter = (id: string) => {
+    setPrinters(printers.filter(p => p.id !== id));
+  };
+
   const updateSettings = (newSettings: Partial<Settings>) => {
     setSettings({ ...settings, ...newSettings });
   };
 
   return (
     <AppContext.Provider value={{ 
-      products, sales, expenses, settings, 
+      products, sales, expenses, printers, settings, 
       addProduct, updateProduct, deleteProduct, 
-      addSale, addExpense, updateSettings,
+      addSale, addExpense, addPrinter, deletePrinter, updateSettings,
       calculateProductCost
     }}>
       {children}

@@ -8,7 +8,7 @@ import {
   ShoppingCart, 
   Receipt, 
   Settings as SettingsIcon,
-  Printer,
+  Printer as PrinterIcon,
   Menu,
   X
 } from 'lucide-react';
@@ -20,6 +20,7 @@ const navItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
   { name: 'Produtos', path: '/products', icon: Package },
   { name: 'Vendas', path: '/sales', icon: ShoppingCart },
+  { name: 'Impressoras', path: '/printers', icon: PrinterIcon },
   { name: 'Despesas', path: '/expenses', icon: Receipt },
   { name: 'Configurações', path: '/settings', icon: SettingsIcon },
 ];
@@ -32,7 +33,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     <div className="flex flex-col h-full bg-zinc-950 text-zinc-400 border-r border-zinc-800">
       <div className="p-6 flex items-center gap-3">
         <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-900/20">
-          <Printer size={24} />
+          <PrinterIcon size={24} />
         </div>
         <span className="text-xl font-bold text-white tracking-tight">Print<span className="text-orange-500">SaaS</span></span>
       </div>
@@ -83,7 +84,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <header className="md:hidden flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-950">
           <div className="flex items-center gap-2">
-            <Printer size={24} className="text-blue-500" />
+            <PrinterIcon size={24} className="text-blue-500" />
             <span className="font-bold text-white">PrintSaaS</span>
           </div>
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
