@@ -7,12 +7,39 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
 
 const Products = () => {
   const { products, addProduct, deleteProduct, calculateProductCost, settings } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({
+    name: '',
+    weightGrams: 0,
+    printTimeMinutes: 0,
+    filamentType: 'PLA',
+    salePrice: 0
+  });
+
+  const handleAddProduct = () => {
+    if (!newProduct.name || newProduct.salePrice <= 0) return;
+    addProduct(newProduct);
+    setIsAddDialogOpen(false);
+    setNewProduct({ name: '', weightGrams: 0, printTimeMinutes: 0, filamentType: 'PLA', salePrice: 0 });
+    showSuccess('Produto adicionado ao catálogo!');
+  };
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -25,9 +52,87 @@ const Products = () => {
           <h1 className="text-4xl font-bold tracking-tight">Catálogo de Produtos</h1>
           <p className="text-muted-foreground mt-2">Gerencie seus modelos 3D e otimize suas margens.</p>
         </div>
-        <Button className="orange-gradient text-white rounded-2xl h-12 px-6 shadow-lg shadow-orange-500/20">
-          <Plus className="mr-2 h-5 w-5" /> Adicionar Produto
-        </Button>
+        
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="orange-gradient text-white rounded-2xl h-12 px-6 shadow-lg shadow-orange-500/20">
+              <Plus className="mr-2 h-5 w-5" /> Adicionar Produto
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="glass-card border-border/50 sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Novo Produto</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Nome do Modelo</Label>
+                <Input 
+                  id="name" 
+                  placeholder="Ex: Vaso Articulado"
+                  className="bg-secondary/50 border-border/50" 
+                  value={newProduct.name}
+                  onChange={e => setNewProduct({...newProduct, name: e.target.value})}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="weight">Peso (gramas)</Label>
+                  <Input 
+                    id="weight" 
+                    type="number" 
+                    className="bg-secondary/50 border-border/50" 
+                    value={newProduct.weightGrams}
+                    onChange={e => setNewProduct({...newProduct, weightGrams: Number(e.target.value)})}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="time">Tempo (minutos)</Label>
+                  <Input 
+                    id="time" 
+                    type="number" 
+                    className="bg-secondary/50 border-border/50" 
+                    value={newProduct.printTimeMinutes}
+                    onChange={e => setNewProduct({...newProduct, printTimeMinutes: Number(e.target.value)})}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="filament">Material</Label>
+                  <Select 
+                    value={newProduct.filamentType} 
+                    onValueChange={(v: FilamentType) => setNewProduct({...newProduct, filamentType: v})}
+                  >
+                    <SelectTrigger className="bg-secondary/50 border-border/50">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PLA">PLA</SelectItem>
+                      <SelectItem value="PETG">PETG</SelectItem>
+                      <SelectItem value="ABS">ABS</SelectItem>
+                      <SelectItem value="Resina">Resina</SelectItem>
+                      <SelectItem value="Outro">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="price">Preço de Venda</Label>
+                  <Input 
+                    id="price" 
+                    type="number" 
+                    className="bg-secondary/50 border-border/50" 
+                    value={newProduct.salePrice}
+                    onChange={e => setNewProduct({...newProduct, salePrice: Number(e.target.value)})}
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setIsAddDialogOpen(false)}>Cancelar</Button>
+              <Button className="orange-gradient text-white" onClick={handleAddProduct}>Salvar Produto</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="relative max-w-md">
@@ -44,13 +149,12 @@ const Products = () => {
         {filteredProducts.map((product) => {
           const cost = calculateProductCost(product);
           const profit = product.salePrice - cost;
-          const margin = (profit / product.salePrice) * 100;
+          const margin = product.salePrice > 0 ? (profit / product.salePrice) * 100 : 0;
           const isLowMargin = margin < 30;
 
           return (
             <Card key={product.id} className="glass-card group hover:border-primary/30 transition-all duration-300 overflow-hidden">
               <CardContent className="p-0">
-                {/* Visual Header */}
                 <div className="h-32 bg-secondary/30 relative flex items-center justify-center overflow-hidden">
                   <div className="absolute inset-0 orange-gradient opacity-0 group-hover:opacity-5 transition-opacity" />
                   <Package size={48} className="text-muted-foreground/20 group-hover:text-primary/20 transition-colors" />
@@ -69,9 +173,6 @@ const Products = () => {
                       </div>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary">
-                        <Copy size={16} />
-                      </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive" onClick={() => deleteProduct(product.id)}>
                         <Trash2 size={16} />
                       </Button>
@@ -110,7 +211,6 @@ const Products = () => {
                   </div>
                 </div>
                 
-                {/* Progress Bar Decor */}
                 <div className="h-1.5 w-full bg-secondary/30">
                   <div 
                     className={cn("h-full transition-all duration-1000", isLowMargin ? "bg-orange-500" : "orange-gradient")} 
