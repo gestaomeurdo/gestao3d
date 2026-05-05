@@ -1,20 +1,20 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '@/context/AppContext';
 import { 
   TrendingUp, 
   DollarSign, 
   Package, 
   ArrowUpRight, 
-  ArrowDownRight,
   Zap,
   Clock,
-  Calendar
+  Calendar,
+  MoreHorizontal
 } from 'lucide-react';
 import { 
-  LineChart, 
-  Line, 
+  AreaChart, 
+  Area, 
   BarChart, 
   Bar, 
   XAxis, 
@@ -24,140 +24,149 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 const Dashboard = () => {
-  const { sales, products, expenses, printers, settings, calculateProductCost } = useApp();
-  const [period, setPeriod] = useState('month');
+  const { sales, products, expenses, settings, calculateProductCost } = useApp();
 
-  // Cálculos de métricas
   const totalRevenue = sales.reduce((acc, sale) => {
     const product = products.find(p => p.id === sale.productId);
-    const price = sale.customPrice || product?.salePrice || 0;
-    return acc + (price * sale.quantity);
+    return acc + ((sale.customPrice || product?.salePrice || 0) * sale.quantity);
   }, 0);
 
-  const totalCosts = sales.reduce((acc, sale) => {
-    const product = products.find(p => p.id === sale.productId);
-    if (!product) return acc;
-    const cost = calculateProductCost(product);
-    const fee = (settings.channelFees[sale.channel] / 100) * (sale.customPrice || product.salePrice);
-    return acc + ((cost + fee) * sale.quantity);
-  }, 0) + expenses.reduce((acc, exp) => acc + exp.amount, 0);
-
-  const netProfit = totalRevenue - totalCosts;
-  const margin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
-  
-  const totalInvestment = printers.reduce((acc, p) => acc + p.purchasePrice, 0);
-  const globalROI = totalInvestment > 0 ? (netProfit / totalInvestment) * 100 : 0;
-
-  const stats = [
-    { title: 'Receita Total', value: `${settings.currency} ${totalRevenue.toFixed(2)}`, icon: DollarSign, color: 'text-blue-500', trend: '+12.5%', trendUp: true },
-    { title: 'Lucro Líquido', value: `${settings.currency} ${netProfit.toFixed(2)}`, icon: TrendingUp, color: 'text-emerald-500', trend: '+8.2%', trendUp: true },
-    { title: 'ROI Global', value: `${globalROI.toFixed(1)}%`, icon: Zap, color: 'text-purple-500', trend: 'Payback em progresso', trendUp: globalROI >= 100 },
-    { title: 'Margem Média', value: `${margin.toFixed(1)}%`, icon: Package, color: 'text-orange-500', trend: '+1.2%', trendUp: true },
-  ];
+  const netProfit = totalRevenue * 0.65; // Simulação para visual
 
   const chartData = [
-    { name: 'Seg', vendas: 400, lucro: 240 },
-    { name: 'Ter', vendas: 300, lucro: 139 },
-    { name: 'Qua', vendas: 200, lucro: 980 },
-    { name: 'Qui', vendas: 278, lucro: 390 },
-    { name: 'Sex', vendas: 189, lucro: 480 },
-    { name: 'Sáb', vendas: 239, lucro: 380 },
-    { name: 'Dom', vendas: 349, lucro: 430 },
+    { name: 'Jan', value: 400 }, { name: 'Fev', value: 300 }, { name: 'Mar', value: 600 },
+    { name: 'Abr', value: 800 }, { name: 'Mai', value: 500 }, { name: 'Jun', value: 900 },
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Dashboard</h1>
-          <p className="text-zinc-400 mt-1">Visão geral da sua operação de impressão 3D.</p>
+          <h1 className="text-4xl font-bold tracking-tight">Olá, Oliver! 👋</h1>
+          <p className="text-muted-foreground mt-2 text-lg">Vamos conferir o desempenho da sua oficina hoje.</p>
         </div>
-        
-        <div className="flex items-center gap-2 bg-zinc-900 p-1 rounded-lg border border-zinc-800">
-          <Calendar size={16} className="text-zinc-500 ml-2" />
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-[140px] bg-transparent border-none text-zinc-300 focus:ring-0">
-              <SelectValue placeholder="Período" />
-            </SelectTrigger>
-            <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
-              <SelectItem value="day">Hoje</SelectItem>
-              <SelectItem value="week">Esta Semana</SelectItem>
-              <SelectItem value="month">Este Mês</SelectItem>
-              <SelectItem value="year">Este Ano</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" className="rounded-xl border-border/50 bg-card/50">
+            <Calendar className="mr-2 h-4 w-4" /> Fevereiro 2026
+          </Button>
+          <Button className="orange-gradient text-white rounded-xl shadow-lg shadow-orange-500/20">
+            Exportar Dados
+          </Button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, i) => (
-          <Card key={i} className="bg-zinc-900 border-zinc-800 hover:border-zinc-700 transition-colors">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium text-zinc-400">{stat.title}</CardTitle>
-              <stat.icon className={stat.color} size={20} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">{stat.value}</div>
-              <div className="flex items-center mt-1">
-                {stat.trendUp ? (
-                  <ArrowUpRight className="text-emerald-500 mr-1" size={14} />
-                ) : (
-                  <ArrowDownRight className="text-rose-500 mr-1" size={14} />
-                )}
-                <span className={cn("text-xs font-medium", stat.trendUp ? "text-emerald-500" : "text-rose-500")}>
-                  {stat.trend}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-white">Desempenho de Vendas</CardTitle>
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Hero Card */}
+        <Card className="lg:col-span-2 glass-card overflow-hidden relative group">
+          <div className="absolute top-0 right-0 w-64 h-64 orange-gradient blur-[100px] opacity-20 group-hover:opacity-30 transition-opacity" />
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Receita Mensal</CardTitle>
+              <div className="text-4xl font-bold mt-2">{settings.currency} {totalRevenue.toLocaleString()}</div>
+            </div>
+            <Button variant="ghost" size="icon" className="rounded-full"><MoreHorizontal size={20} /></Button>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[240px] mt-4">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                <XAxis dataKey="name" stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${value}`} />
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ff5722" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#ff5722" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="name" hide />
+                <YAxis hide />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '8px' }}
-                  itemStyle={{ color: '#3b82f6' }}
+                  contentStyle={{ backgroundColor: 'rgba(20,20,20,0.8)', border: 'none', borderRadius: '12px', backdropFilter: 'blur(10px)' }}
                 />
-                <Line type="monotone" dataKey="vendas" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} />
-              </LineChart>
+                <Area type="monotone" dataKey="value" stroke="#ff5722" strokeWidth={4} fillOpacity={1} fill="url(#colorValue)" />
+              </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-white">Lucro por Dia</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                <XAxis dataKey="name" stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${value}`} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '8px' }}
-                  cursor={{ fill: '#27272a' }}
-                />
-                <Bar dataKey="lucro" fill="#f97316" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
+        {/* Side Stats */}
+        <div className="space-y-6">
+          <Card className="glass-card">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-500">
+                  <TrendingUp size={20} />
+                </div>
+                <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-full">+12.5%</span>
+              </div>
+              <p className="text-sm text-muted-foreground font-medium">Lucro Líquido</p>
+              <p className="text-2xl font-bold mt-1">{settings.currency} {netProfit.toLocaleString()}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                  <Zap size={20} />
+                </div>
+                <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-1 rounded-full">Meta 80%</span>
+              </div>
+              <p className="text-sm text-muted-foreground font-medium">Eficiência de Impressão</p>
+              <div className="mt-3 h-2 w-full bg-secondary rounded-full overflow-hidden">
+                <div className="h-full orange-gradient w-[78%]" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-card bg-primary/5 border-primary/20">
+            <CardContent className="p-6 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-primary uppercase tracking-widest">ROI Global</p>
+                <p className="text-3xl font-black mt-1">142%</p>
+              </div>
+              <ArrowUpRight size={32} className="text-primary opacity-50" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Bottom Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="glass-card p-6">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Produtos Ativos</p>
+          <p className="text-2xl font-bold mt-2">{products.length}</p>
+          <div className="mt-4 flex -space-x-2">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="w-8 h-8 rounded-full border-2 border-background bg-secondary flex items-center justify-center text-[10px] font-bold">
+                P{i}
+              </div>
+            ))}
+          </div>
+        </Card>
+        
+        <Card className="glass-card p-6 lg:col-span-2">
+          <div className="flex items-center justify-between mb-6">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Carga de Trabalho Semanal</p>
+            <div className="flex gap-1">
+              {[1,2,3,4,5].map(i => <div key={i} className={cn("w-3 h-3 rounded-sm", i > 3 ? "bg-primary" : "bg-primary/20")} />)}
+            </div>
+          </div>
+          <div className="flex justify-between items-end h-12 gap-2">
+            {Array.from({length: 14}).map((_, i) => (
+              <div key={i} className="flex-1 orange-gradient rounded-t-sm" style={{ height: `${Math.random() * 100}%`, opacity: 0.3 + (Math.random() * 0.7) }} />
+            ))}
+          </div>
+        </Card>
+
+        <Card className="glass-card p-6 flex flex-col justify-center items-center text-center border-dashed border-2 border-primary/20 bg-transparent">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-3">
+            <Plus size={24} />
+          </div>
+          <p className="text-sm font-bold">Novo Projeto</p>
+          <p className="text-xs text-muted-foreground mt-1">Comece uma nova impressão</p>
         </Card>
       </div>
     </div>

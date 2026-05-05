@@ -9,98 +9,131 @@ import {
   Receipt, 
   Settings as SettingsIcon,
   Printer as PrinterIcon,
-  Menu,
-  X
+  Search,
+  Bell,
+  Moon,
+  ChevronDown,
+  Menu
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 const navItems = [
-  { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { name: 'Produtos', path: '/products', icon: Package },
-  { name: 'Vendas', path: '/sales', icon: ShoppingCart },
-  { name: 'Impressoras', path: '/printers', icon: PrinterIcon },
-  { name: 'Despesas', path: '/expenses', icon: Receipt },
-  { name: 'Configurações', path: '/settings', icon: SettingsIcon },
+  { group: "Geral", items: [
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { name: 'Produtos', path: '/products', icon: Package },
+    { name: 'Vendas', path: '/sales', icon: ShoppingCart },
+  ]},
+  { group: "Operação", items: [
+    { name: 'Impressoras', path: '/printers', icon: PrinterIcon },
+    { name: 'Despesas', path: '/expenses', icon: Receipt },
+  ]},
+  { group: "Sistema", items: [
+    { name: 'Configurações', path: '/settings', icon: SettingsIcon },
+  ]}
 ];
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-zinc-950 text-zinc-400 border-r border-zinc-800">
-      <div className="p-6 flex items-center gap-3">
-        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-900/20">
-          <PrinterIcon size={24} />
+    <div className="flex flex-col h-full p-6">
+      <div className="flex items-center gap-3 mb-10 px-2">
+        <div className="w-8 h-8 orange-gradient rounded-lg flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
+          <PrinterIcon size={18} />
         </div>
-        <span className="text-xl font-bold text-white tracking-tight">Print<span className="text-orange-500">SaaS</span></span>
+        <span className="text-xl font-bold tracking-tight">Print<span className="text-primary">SaaS</span></span>
       </div>
       
-      <nav className="flex-1 px-4 space-y-1 mt-4">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group",
-                isActive 
-                  ? "bg-zinc-900 text-blue-400 border border-zinc-800" 
-                  : "hover:bg-zinc-900 hover:text-zinc-200"
-              )}
-            >
-              <item.icon size={20} className={cn(isActive ? "text-blue-400" : "group-hover:text-blue-400")} />
-              <span className="font-medium">{item.name}</span>
-              {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 space-y-8">
+        {navItems.map((group) => (
+          <div key={group.group}>
+            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-4 px-2">{group.group}</p>
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group text-sm font-medium",
+                      isActive 
+                        ? "bg-primary/10 text-primary" 
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    )}
+                  >
+                    <item.icon size={18} className={cn(isActive ? "text-primary" : "group-hover:text-foreground")} />
+                    <span>{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      <div className="p-4 mt-auto border-t border-zinc-800">
-        <div className="bg-zinc-900/50 rounded-xl p-4 border border-zinc-800/50">
-          <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Plano Atual</p>
-          <p className="text-sm font-medium text-zinc-200">Pro Business</p>
-          <div className="mt-3 h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
-            <div className="h-full bg-orange-500 w-3/4" />
-          </div>
-          <p className="text-[10px] text-zinc-500 mt-2">75% da cota utilizada</p>
-        </div>
+      <div className="mt-auto">
+        <Button className="w-full orange-gradient text-white rounded-xl py-6 shadow-lg shadow-orange-500/20 hover:opacity-90 transition-opacity">
+          Upgrade to PRO
+        </Button>
       </div>
     </div>
   );
 
   return (
-    <div className="flex h-screen bg-zinc-950 overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden font-sans">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:block w-64 flex-shrink-0">
+      <aside className="hidden lg:block w-64 flex-shrink-0 border-r border-border/50">
         <SidebarContent />
       </aside>
 
-      {/* Mobile Header */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <header className="md:hidden flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-950">
-          <div className="flex items-center gap-2">
-            <PrinterIcon size={24} className="text-blue-500" />
-            <span className="font-bold text-white">PrintSaaS</span>
+        {/* Topbar */}
+        <header className="h-20 flex items-center justify-between px-8 border-b border-border/50 bg-background/50 backdrop-blur-md z-10">
+          <div className="flex items-center gap-4 flex-1 max-w-xl">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input 
+                placeholder="Busca rápida..." 
+                className="pl-10 bg-secondary/50 border-none rounded-2xl h-11 focus-visible:ring-primary/20"
+              />
+            </div>
           </div>
-          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-zinc-400">
-                <Menu size={24} />
+
+          <div className="flex items-center gap-6">
+            <div className="hidden md:flex items-center gap-2 bg-secondary/50 px-3 py-1.5 rounded-full text-xs font-medium">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              Sistema Online
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground">
+                <Bell size={20} />
               </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-64 bg-zinc-950 border-zinc-800">
-              <SidebarContent />
-            </SheetContent>
-          </Sheet>
+              <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground">
+                <Moon size={20} />
+              </Button>
+              <div className="h-8 w-[1px] bg-border mx-2" />
+              <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
+                <Avatar className="h-9 w-9 border-2 border-primary/20">
+                  <AvatarImage src="https://github.com/shadcn.png" />
+                  <AvatarFallback>AD</AvatarFallback>
+                </Avatar>
+                <div className="hidden sm:block text-left">
+                  <p className="text-sm font-bold leading-none">Admin User</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Plano Business</p>
+                </div>
+                <ChevronDown size={14} className="text-muted-foreground" />
+              </div>
+            </div>
+          </div>
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-zinc-950 p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto p-8 custom-scrollbar">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>
