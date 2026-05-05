@@ -43,6 +43,7 @@ export interface Printer {
 }
 
 export interface Settings {
+  userName: string;
   filamentPricePerKg: number;
   energyCostPerHour: number;
   channelFees: Record<SaleChannel, number>;
@@ -69,7 +70,6 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Inicialização com dados do localStorage ou padrões
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('printsaas_products');
     return saved ? JSON.parse(saved) : [
@@ -103,6 +103,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [settings, setSettings] = useState<Settings>(() => {
     const saved = localStorage.getItem('printsaas_settings');
     return saved ? JSON.parse(saved) : {
+      userName: 'Oliver',
       filamentPricePerKg: 120,
       energyCostPerHour: 0.85,
       channelFees: {
@@ -115,7 +116,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   });
 
-  // Persistência
   useEffect(() => {
     localStorage.setItem('printsaas_products', JSON.stringify(products));
     localStorage.setItem('printsaas_sales', JSON.stringify(sales));

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useApp, SaleChannel } from '@/context/AppContext';
-import { Save, Globe, Zap, CreditCard, Palette } from 'lucide-react';
+import { Save, Globe, Zap, CreditCard, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -21,7 +21,7 @@ const Settings = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">Configurações</h1>
-          <p className="text-zinc-400 mt-1">Ajuste os parâmetros globais de cálculo.</p>
+          <p className="text-zinc-400 mt-1">Ajuste os parâmetros globais de cálculo e perfil.</p>
         </div>
         <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2" onClick={handleSave}>
           <Save size={18} /> Salvar Alterações
@@ -29,6 +29,27 @@ const Settings = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Perfil do Usuário */}
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <User className="text-primary" size={20} />
+              <CardTitle className="text-white">Seu Perfil</CardTitle>
+            </div>
+            <CardDescription className="text-zinc-500">Como você quer ser chamado no sistema.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2">
+              <Label className="text-zinc-400">Seu Nome</Label>
+              <Input 
+                className="bg-zinc-950 border-zinc-800 text-white" 
+                value={settings.userName}
+                onChange={e => updateSettings({ userName: e.target.value })}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Custos Base */}
         <Card className="bg-zinc-900 border-zinc-800">
           <CardHeader>
@@ -96,7 +117,7 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {/* Preferências */}
+        {/* Regional */}
         <Card className="bg-zinc-900 border-zinc-800">
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -112,25 +133,6 @@ const Settings = () => {
                 value={settings.currency}
                 onChange={e => updateSettings({ currency: e.target.value })}
               />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Aparência */}
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Palette className="text-emerald-500" size={20} />
-              <CardTitle className="text-white">Aparência</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between p-3 bg-zinc-950 rounded-lg border border-zinc-800">
-              <span className="text-zinc-400 text-sm">Tema do Sistema</span>
-              <div className="flex gap-2">
-                <Button variant="secondary" size="sm" className="bg-zinc-800 text-white">Dark</Button>
-                <Button variant="ghost" size="sm" className="text-zinc-500">Light</Button>
-              </div>
             </div>
           </CardContent>
         </Card>

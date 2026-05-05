@@ -5,10 +5,8 @@ import { useApp } from '@/context/AppContext';
 import { 
   TrendingUp, 
   DollarSign, 
-  Package, 
   ArrowUpRight, 
   Zap,
-  Clock,
   Calendar,
   MoreHorizontal,
   Plus
@@ -16,8 +14,6 @@ import {
 import { 
   AreaChart, 
   Area, 
-  BarChart, 
-  Bar, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -29,7 +25,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const Dashboard = () => {
-  const { sales, products, expenses, settings, calculateProductCost } = useApp();
+  const { sales, products, settings } = useApp();
 
   const totalRevenue = sales.reduce((acc, sale) => {
     const product = products.find(p => p.id === sale.productId);
@@ -47,7 +43,7 @@ const Dashboard = () => {
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight">Olá, Oliver! 👋</h1>
+          <h1 className="text-4xl font-bold tracking-tight">Olá, {settings.userName}! 👋</h1>
           <p className="text-muted-foreground mt-2 text-lg">Vamos conferir o desempenho da sua oficina hoje.</p>
         </div>
         <div className="flex items-center gap-3">
