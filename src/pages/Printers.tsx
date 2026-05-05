@@ -1,8 +1,12 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useApp, Printer } from '@/context/AppContext';
-import { Plus, Printer as PrinterIcon, Trash2, Calendar, DollarSign, TrendingUp } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { useApp, Printer, PrintJob } from '@/context/AppContext';
+import { 
+  Plus, Printer as PrinterIcon, Trash2, Clock, 
+  TrendingUp, AlertTriangle, CheckCircle2, 
+  History, Zap, DollarSign, Play, Activity
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,14 +19,18 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { showSuccess } from '@/utils/toast';
-import { format } from 'date-fns';
+import { format, isToday } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const Printers = () => {
-  const { printers, addPrinter, deletePrinter, sales, products, expenses, settings, calculateProductCost } = useApp();
+  const { printers, products, sales, printJobs, addPrinter, deletePrinter, addPrintJob, updatePrinterStatus, settings, calculateProductCost } = useApp();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isJobDialogOpen, setIsJobDialogOpen] = useState(false);
+  const [selectedPrinterId, setSelectedPrinterId] = useState<string | null>(null);
 
   const [newPrinter, setNewPrinter] = useState<Omit<Printer, 'id'>>({
     name: '',
@@ -31,78 +39,80 @@ const Printers = () => {
     status: 'disponível'
   });
 
-  // Cálculo de Lucro Total Acumulado para ROI
-  const totalRevenue = sales.reduce((acc, sale) => {
-    const product = products.find(p => p.id === sale.productId);
-    const price = sale.customPrice || product?.salePrice || 0;
-    return acc + (price * sale.quantity);
-  }, 0);
-
-  const totalCosts = sales.reduce((acc, sale) => {
-    const product = products.find(p => p.id === sale.productId);
-    if (!product) return acc;
-    const cost = calculateProductCost(product);
-    const fee = (settings.channelFees[sale.channel] / 100) * (sale.customPrice || product.salePrice);
-    return acc + ((cost + fee) * sale.quantity);
-  }, 0) + expenses.reduce((acc, exp) => acc + exp.amount, 0);
-
-  const totalNetProfit = totalRevenue - totalCosts;
-  const totalInvestment = printers.reduce((acc, p) => acc + p.purchasePrice, 0);
-  
-  const globalROI = totalInvestment > 0 ? (totalNetProfit / totalInvestment) * 100 : 0;
+  const [newJob, setNewJob] = useState({
+    productId: '',
+    status: 'concluído' as const
+  });
 
   const handleAddPrinter = () => {
+    if (!newPrinter.name) return;
     addPrinter(newPrinter);
     setIsAddDialogOpen(false);
     setNewPrinter({ name: '', purchasePrice: 0, purchaseDate: new Date().toISOString().split('T')[0], status: 'disponível' });
     showSuccess('Impressora adicionada!');
   };
 
+  const handleRegisterPrint = () => {
+    if (!selectedPrinterId || !newJob.productId) return;
+    const product = products.find(p => p.id === newJob.productId);
+    if (!product) return;
+
+    addPrintJob({
+      printerId: selectedPrinterId,
+      productId: newJob.productId,
+      startTime: new Date().toISOString(),
+      durationMinutes: product.printTimeMinutes,
+      status: newJob.status
+    });
+
+    setIsJobDialogOpen(false);
+    showSuccess('Impressão registrada no histórico!');
+  };
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-8 animate-in fade-in duration-700">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Impressoras</h1>
-          <p className="text-zinc-400 mt-1">Gerencie seu hardware e acompanhe o retorno do investimento.</p>
+          <h1 className="text-4xl font-bold tracking-tight">Gestão de Máquinas</h1>
+          <p className="text-muted-foreground mt-2">Monitore a produtividade e o retorno de cada equipamento.</p>
         </div>
         
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-              <Plus size={18} /> Nova Impressora
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl h-12 px-6 shadow-lg shadow-blue-500/20">
+              <Plus className="mr-2 h-5 w-5" /> Nova Impressora
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-zinc-900 border-zinc-800 text-white sm:max-w-[450px]">
+          <DialogContent className="glass-card border-border/50 sm:max-w-[450px]">
             <DialogHeader>
-              <DialogTitle>Adicionar Impressora</DialogTitle>
+              <DialogTitle>Adicionar Equipamento</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Modelo/Nome</Label>
+                <Label>Modelo / Nome</Label>
                 <Input 
-                  id="name" 
-                  className="bg-zinc-800 border-zinc-700" 
+                  placeholder="Ex: Bambu Lab P1S"
+                  className="bg-secondary/50 border-border/50" 
                   value={newPrinter.name}
                   onChange={e => setNewPrinter({...newPrinter, name: e.target.value})}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="price">Preço de Compra</Label>
+                  <Label>Preço de Compra</Label>
                   <Input 
-                    id="price" 
                     type="number" 
-                    className="bg-zinc-800 border-zinc-700" 
+                    className="bg-secondary/50 border-border/50" 
                     value={newPrinter.purchasePrice}
                     onChange={e => setNewPrinter({...newPrinter, purchasePrice: Number(e.target.value)})}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="date">Data da Compra</Label>
+                  <Label>Data da Compra</Label>
                   <Input 
-                    id="date" 
                     type="date" 
-                    className="bg-zinc-800 border-zinc-700" 
+                    className="bg-secondary/50 border-border/50" 
                     value={newPrinter.purchaseDate}
                     onChange={e => setNewPrinter({...newPrinter, purchaseDate: e.target.value})}
                   />
@@ -111,99 +121,161 @@ const Printers = () => {
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setIsAddDialogOpen(false)}>Cancelar</Button>
-              <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleAddPrinter}>Salvar</Button>
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleAddPrinter}>Salvar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* ROI Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-zinc-400">Investimento Total</p>
-                <p className="text-2xl font-bold text-white">{settings.currency} {totalInvestment.toFixed(2)}</p>
-              </div>
-              <div className="p-3 bg-blue-500/10 rounded-full">
-                <DollarSign className="text-blue-500" size={24} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-zinc-400">Lucro Acumulado</p>
-                <p className="text-2xl font-bold text-emerald-500">{settings.currency} {totalNetProfit.toFixed(2)}</p>
-              </div>
-              <div className="p-3 bg-emerald-500/10 rounded-full">
-                <TrendingUp className="text-emerald-500" size={24} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-zinc-400">ROI Global</p>
-                <p className={cn("text-2xl font-bold", globalROI >= 100 ? "text-blue-500" : "text-orange-500")}>
-                  {globalROI.toFixed(1)}%
-                </p>
-              </div>
-              <div className="w-full max-w-[100px]">
-                <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-                  <div 
-                    className={cn("h-full transition-all duration-1000", globalROI >= 100 ? "bg-blue-500" : "bg-orange-500")} 
-                    style={{ width: `${Math.min(globalROI, 100)}%` }} 
-                  />
-                </div>
-                <p className="text-[10px] text-zinc-500 mt-1 text-center">
-                  {globalROI >= 100 ? 'Equipamento Pago!' : `${(100 - globalROI).toFixed(0)}% para o break-even`}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* LISTAGEM DE IMPRESSORAS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {printers.map((printer) => {
+          // Cálculos por impressora
+          const printerJobs = printJobs.filter(j => j.printerId === printer.id);
+          const jobsToday = printerJobs.filter(j => isToday(new Date(j.startTime)));
+          const timeTodayMinutes = jobsToday.reduce((acc, j) => acc + j.durationMinutes, 0);
+          const efficiency = Math.min((timeTodayMinutes / (24 * 60)) * 100, 100);
+          
+          const printerSales = sales.filter(s => s.printerId === printer.id);
+          const profitGenerated = printerSales.reduce((acc, s) => {
+            const product = products.find(p => p.id === s.productId);
+            if (!product) return acc;
+            const cost = calculateProductCost(product);
+            const fee = (settings.channelFees[s.channel] / 100) * (s.customPrice || product.salePrice);
+            return acc + ((s.customPrice || product.salePrice) - cost - fee) * s.quantity;
+          }, 0);
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {printers.map((printer) => (
-          <Card key={printer.id} className="bg-zinc-900 border-zinc-800 hover:border-zinc-700 transition-all group">
-            <CardContent className="p-5">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-zinc-800 rounded-lg">
-                    <PrinterIcon className="text-blue-400" size={20} />
+          return (
+            <Card key={printer.id} className="glass-card group hover:border-primary/30 transition-all duration-300 overflow-hidden rounded-3xl">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className={cn(
+                      "w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner",
+                      printer.status === 'imprimindo' ? "bg-primary/10 text-primary" : 
+                      printer.status === 'manutenção' ? "bg-rose-500/10 text-rose-500" : "bg-zinc-500/10 text-zinc-500"
+                    )}>
+                      <PrinterIcon size={28} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold">{printer.name}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge className={cn(
+                          "capitalize border-none rounded-lg text-[10px] font-bold",
+                          printer.status === 'imprimindo' ? "bg-primary text-white" : 
+                          printer.status === 'manutenção' ? "bg-rose-500 text-white" : "bg-zinc-500 text-white"
+                        )}>
+                          {printer.status}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground font-bold uppercase">Desde {format(new Date(printer.purchaseDate), 'MM/yyyy')}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-white">{printer.name}</h3>
-                    <p className="text-xs text-zinc-500">Comprada em {format(new Date(printer.purchaseDate), 'dd/MM/yyyy')}</p>
+                  <div className="flex gap-2">
+                    <Dialog open={isJobDialogOpen && selectedPrinterId === printer.id} onOpenChange={(open) => {
+                      setIsJobDialogOpen(open);
+                      if (open) setSelectedPrinterId(printer.id);
+                    }}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="icon" className="rounded-xl border-border/50 hover:bg-primary/10 hover:text-primary">
+                          <Play size={16} />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="glass-card border-border/50">
+                        <DialogHeader>
+                          <DialogTitle>Registrar Trabalho de Impressão</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid gap-2">
+                            <Label>Produto Impresso</Label>
+                            <Select onValueChange={(v) => setNewJob({...newJob, productId: v})}>
+                              <SelectTrigger className="bg-secondary/50 border-border/50">
+                                <SelectValue placeholder="Selecione o produto" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {products.map(p => (
+                                  <SelectItem key={p.id} value={p.id}>{p.name} ({Math.floor(p.printTimeMinutes/60)}h {p.printTimeMinutes%60}m)</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button variant="ghost" onClick={() => setIsJobDialogOpen(false)}>Cancelar</Button>
+                          <Button className="bg-primary text-white" onClick={handleRegisterPrint}>Registrar</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                    <Button variant="ghost" size="icon" className="rounded-xl text-muted-foreground hover:text-rose-500" onClick={() => deletePrinter(printer.id)}>
+                      <Trash2 size={16} />
+                    </Button>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deletePrinter(printer.id)}>
-                  <Trash2 size={14} />
-                </Button>
-              </div>
 
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-zinc-500">Custo</span>
-                  <span className="text-zinc-200 font-medium">{settings.currency} {printer.purchasePrice.toFixed(2)}</span>
+                {/* STATS GRID */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="p-3 rounded-2xl bg-secondary/30 border border-border/50">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Uso Hoje</p>
+                    <p className="text-lg font-bold mt-1">{Math.floor(timeTodayMinutes / 60)}h {timeTodayMinutes % 60}m</p>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-secondary/30 border border-border/50">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Eficiência</p>
+                    <p className="text-lg font-bold mt-1">{efficiency.toFixed(1)}%</p>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Lucro Total</p>
+                    <p className="text-lg font-bold text-emerald-500 mt-1">{settings.currency} {profitGenerated.toFixed(2)}</p>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-zinc-500">Status</span>
-                  <Badge variant="outline" className="capitalize border-zinc-700 text-zinc-400">
-                    {printer.status}
-                  </Badge>
+
+                {/* PROGRESS BAR */}
+                <div className="space-y-2 mb-6">
+                  <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground">
+                    <span>Produtividade Diária</span>
+                    <span className={cn(efficiency > 70 ? "text-emerald-500" : efficiency > 30 ? "text-orange-500" : "text-rose-500")}>
+                      {efficiency > 70 ? 'Excelente' : efficiency > 30 ? 'Moderada' : 'Baixa'}
+                    </span>
+                  </div>
+                  <Progress value={efficiency} className="h-2" />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+
+                {/* ALERTAS INTELIGENTES */}
+                {efficiency < 20 && printer.status === 'disponível' && (
+                  <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center gap-3 mb-6">
+                    <AlertTriangle className="text-orange-500 shrink-0" size={18} />
+                    <p className="text-xs text-orange-500 font-medium">
+                      Esta impressora está <strong>subutilizada</strong> hoje. Considere iniciar uma nova fila de produção.
+                    </p>
+                  </div>
+                )}
+
+                {/* HISTÓRICO RÁPIDO */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                    <History size={14} /> Últimos Trabalhos
+                  </h4>
+                  <div className="space-y-2">
+                    {printerJobs.slice(-3).reverse().map((job) => {
+                      const product = products.find(p => p.id === job.productId);
+                      return (
+                        <div key={job.id} className="flex items-center justify-between p-3 bg-background/50 rounded-xl border border-border/50 text-xs">
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                            <span className="font-bold">{product?.name || 'Produto Removido'}</span>
+                          </div>
+                          <span className="text-muted-foreground">{format(new Date(job.startTime), 'dd/MM HH:mm')}</span>
+                        </div>
+                      );
+                    })}
+                    {printerJobs.length === 0 && (
+                      <p className="text-xs text-muted-foreground italic text-center py-2">Nenhum trabalho registrado ainda.</p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

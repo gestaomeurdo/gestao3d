@@ -29,6 +29,7 @@ export interface Sale {
   channel: SaleChannel;
   status: SaleStatus;
   customPrice?: number;
+  printerId?: string; // Vínculo com a impressora
 }
 
 export interface Expense {
@@ -47,6 +48,15 @@ export interface Printer {
   status: 'disponível' | 'imprimindo' | 'manutenção';
 }
 
+export interface PrintJob {
+  id: string;
+  printerId: string;
+  productId: string;
+  startTime: string;
+  durationMinutes: number;
+  status: 'concluído' | 'falhou';
+}
+
 export interface Settings {
   userName: string;
   systemName: string;
@@ -61,6 +71,7 @@ interface AppContextType {
   sales: Sale[];
   expenses: Expense[];
   printers: Printer[];
+  printJobs: PrintJob[];
   settings: Settings;
   addProduct: (product: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, product: Partial<Product>) => void;
@@ -68,7 +79,9 @@ interface AppContextType {
   addSale: (sale: Omit<Sale, 'id'>) => void;
   addExpense: (expense: Omit<Expense, 'id'>) => void;
   addPrinter: (printer: Omit<Printer, 'id'>) => void;
+  updatePrinterStatus: (id: string, status: Printer['status']) => void;
   deletePrinter: (id: string) => void;
+  addPrintJob: (job: Omit<PrintJob, 'id'>) => void;
   updateSettings: (settings: Partial<Settings>) => void;
   calculateProductCost: (product: Product) => number;
 }
@@ -78,10 +91,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('printsaas_products');
-    return saved ? JSON.parse(saved) : [
-      { id: '1', name: 'Vaso Decorativo Low Poly', weightGrams: 150, printTimeMinutes: 480, filamentType: 'PLA', salePrice: 85, category: 'Decoração', defaultChannel: 'Mercado Livre' },
-      { id: '2', name: 'Suporte de Headset', weightGrams: 80, printTimeMinutes: 180, filamentType: 'PETG', salePrice: 45, category: 'Acessórios', defaultChannel: 'Direto' },
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [sales, setSales] = useState<Sale[]>(() => {
@@ -101,6 +111,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ];
   });
 
+  const [printJobs, setPrintJobs] = useState<PrintJob[]>(() => {
+    const saved = localStorage.getItem('printsaas_jobs');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [settings, setSettings] = useState<Settings>(() => {
     const saved = localStorage.getItem('printsaas_settings');
     return saved ? JSON.parse(saved) : {
@@ -108,12 +123,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       systemName: 'PrintSaaS',
       filamentPricePerKg: 120,
       energyCostPerHour: 0.85,
-      channelFees: {
-        'Mercado Livre': 16.5,
-        'Shopee': 14,
-        'Direto': 0,
-        'Instagram': 0,
-      },
+      channelFees: { 'Mercado Livre': 16.5, 'Shopee': 14, 'Direto': 0, 'Instagram': 0 },
       currency: 'R$',
     };
   });
@@ -123,53 +133,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('printsaas_sales', JSON.stringify(sales));
     localStorage.setItem('printsaas_expenses', JSON.stringify(expenses));
     localStorage.setItem('printsaas_printers', JSON.stringify(printers));
+    localStorage.setItem('printsaas_jobs', JSON.stringify(printJobs));
     localStorage.setItem('printsaas_settings', JSON.stringify(settings));
-  }, [products, sales, expenses, printers, settings]);
+  }, [products, sales, expenses, printers, printJobs, settings]);
 
   const calculateProductCost = (product: Product) => {
     const filamentCost = (product.weightGrams / 1000) * settings.filamentPricePerKg;
     const energyCost = (product.printTimeMinutes / 60) * settings.energyCostPerHour;
-    const additional = product.additionalCost || 0;
-    return filamentCost + energyCost + additional;
+    return filamentCost + energyCost + (product.additionalCost || 0);
   };
 
-  const addProduct = (product: Omit<Product, 'id'>) => {
-    setProducts([...products, { ...product, id: Math.random().toString(36).substr(2, 9) }]);
-  };
+  const addProduct = (product: Omit<Product, 'id'>) => setProducts([...products, { ...product, id: Math.random().toString(36).substr(2, 9) }]);
+  const updateProduct = (id: string, updated: Partial<Product>) => setProducts(products.map(p => p.id === id ? { ...p, ...updated } : p));
+  const deleteProduct = (id: string) => setProducts(products.filter(p => p.id !== id));
+  
+  const addSale = (sale: Omit<Sale, 'id'>) => setSales([...sales, { ...sale, id: Math.random().toString(36).substr(2, 9) }]);
+  const addExpense = (expense: Omit<Expense, 'id'>) => setExpenses([...expenses, { ...expense, id: Math.random().toString(36).substr(2, 9) }]);
+  
+  const addPrinter = (printer: Omit<Printer, 'id'>) => setPrinters([...printers, { ...printer, id: Math.random().toString(36).substr(2, 9) }]);
+  const updatePrinterStatus = (id: string, status: Printer['status']) => setPrinters(printers.map(p => p.id === id ? { ...p, status } : p));
+  const deletePrinter = (id: string) => setPrinters(printers.filter(p => p.id !== id));
 
-  const updateProduct = (id: string, updated: Partial<Product>) => {
-    setProducts(products.map(p => p.id === id ? { ...p, ...updated } : p));
-  };
+  const addPrintJob = (job: Omit<PrintJob, 'id'>) => setPrintJobs([...printJobs, { ...job, id: Math.random().toString(36).substr(2, 9) }]);
 
-  const deleteProduct = (id: string) => {
-    setProducts(products.filter(p => p.id !== id));
-  };
-
-  const addSale = (sale: Omit<Sale, 'id'>) => {
-    setSales([...sales, { ...sale, id: Math.random().toString(36).substr(2, 9) }]);
-  };
-
-  const addExpense = (expense: Omit<Expense, 'id'>) => {
-    setExpenses([...expenses, { ...expense, id: Math.random().toString(36).substr(2, 9) }]);
-  };
-
-  const addPrinter = (printer: Omit<Printer, 'id'>) => {
-    setPrinters([...printers, { ...printer, id: Math.random().toString(36).substr(2, 9) }]);
-  };
-
-  const deletePrinter = (id: string) => {
-    setPrinters(printers.filter(p => p.id !== id));
-  };
-
-  const updateSettings = (newSettings: Partial<Settings>) => {
-    setSettings({ ...settings, ...newSettings });
-  };
+  const updateSettings = (newSettings: Partial<Settings>) => setSettings({ ...settings, ...newSettings });
 
   return (
     <AppContext.Provider value={{ 
-      products, sales, expenses, printers, settings, 
+      products, sales, expenses, printers, printJobs, settings, 
       addProduct, updateProduct, deleteProduct, 
-      addSale, addExpense, addPrinter, deletePrinter, updateSettings,
+      addSale, addExpense, addPrinter, updatePrinterStatus, deletePrinter, addPrintJob, updateSettings,
       calculateProductCost
     }}>
       {children}
