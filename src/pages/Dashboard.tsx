@@ -10,7 +10,8 @@ import {
   Zap,
   Clock,
   Calendar,
-  MoreHorizontal
+  MoreHorizontal,
+  Plus
 } from 'lucide-react';
 import { 
   AreaChart, 
