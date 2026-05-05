@@ -10,10 +10,15 @@ export type ExpenseCategory = 'filamento' | 'energia' | 'manutenção' | 'equipa
 export interface Product {
   id: string;
   name: string;
+  category?: string;
   weightGrams: number;
   printTimeMinutes: number;
   filamentType: FilamentType;
+  color?: string;
   salePrice: number;
+  additionalCost?: number;
+  defaultChannel?: SaleChannel;
+  imageUrl?: string;
 }
 
 export interface Sale {
@@ -74,30 +79,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('printsaas_products');
     return saved ? JSON.parse(saved) : [
-      { id: '1', name: 'Vaso Decorativo Low Poly', weightGrams: 150, printTimeMinutes: 480, filamentType: 'PLA', salePrice: 85 },
-      { id: '2', name: 'Suporte de Headset', weightGrams: 80, printTimeMinutes: 180, filamentType: 'PETG', salePrice: 45 },
+      { id: '1', name: 'Vaso Decorativo Low Poly', weightGrams: 150, printTimeMinutes: 480, filamentType: 'PLA', salePrice: 85, category: 'Decoração', defaultChannel: 'Mercado Livre' },
+      { id: '2', name: 'Suporte de Headset', weightGrams: 80, printTimeMinutes: 180, filamentType: 'PETG', salePrice: 45, category: 'Acessórios', defaultChannel: 'Direto' },
     ];
   });
 
   const [sales, setSales] = useState<Sale[]>(() => {
     const saved = localStorage.getItem('printsaas_sales');
-    return saved ? JSON.parse(saved) : [
-      { id: '1', date: new Date().toISOString(), productId: '1', quantity: 2, channel: 'Mercado Livre', status: 'entregue' },
-      { id: '2', date: new Date().toISOString(), productId: '2', quantity: 1, channel: 'Direto', status: 'pago' },
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     const saved = localStorage.getItem('printsaas_expenses');
-    return saved ? JSON.parse(saved) : [
-      { id: '1', category: 'filamento', amount: 120, date: new Date().toISOString(), description: 'Rolo PLA Branco 1kg' },
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [printers, setPrinters] = useState<Printer[]>(() => {
     const saved = localStorage.getItem('printsaas_printers');
     return saved ? JSON.parse(saved) : [
-      { id: '1', name: 'Ender 3 V3 SE', purchasePrice: 1500, purchaseDate: '2023-10-01', status: 'disponível' },
+      { id: '1', name: 'Bambu Lab A1 Mini', purchasePrice: 2500, purchaseDate: '2024-01-01', status: 'disponível' },
     ];
   });
 
@@ -129,7 +129,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const calculateProductCost = (product: Product) => {
     const filamentCost = (product.weightGrams / 1000) * settings.filamentPricePerKg;
     const energyCost = (product.printTimeMinutes / 60) * settings.energyCostPerHour;
-    return filamentCost + energyCost;
+    const additional = product.additionalCost || 0;
+    return filamentCost + energyCost + additional;
   };
 
   const addProduct = (product: Omit<Product, 'id'>) => {
