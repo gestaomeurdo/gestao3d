@@ -26,6 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { showSuccess } from '@/utils/toast';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const Sales = () => {
   const { sales, products, addSale, settings, calculateProductCost } = useApp();

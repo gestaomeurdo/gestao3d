@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useApp, Product, FilamentType } from '@/context/AppContext';
-import { Plus, Search, MoreVertical, Copy, Trash2, Edit2, AlertCircle } from 'lucide-react';
+import { Plus, Search, MoreVertical, Copy, Trash2, Edit2, AlertCircle, Package, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { showSuccess } from '@/utils/toast';
+import { cn } from '@/lib/utils';
 
 const Products = () => {
   const { products, addProduct, deleteProduct, calculateProductCost, settings } = useApp();
