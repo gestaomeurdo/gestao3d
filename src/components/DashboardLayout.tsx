@@ -38,6 +38,9 @@ const navItems = [
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const { settings } = useApp();
+  
+  const userName = settings?.userName || "Usuário";
+  const userInitials = userName.substring(0, 2).toUpperCase();
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full p-6">
@@ -80,10 +83,10 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         <div className="flex items-center gap-3 px-2">
           <Avatar className="h-10 w-10 border-2 border-primary/20">
             <AvatarImage src="https://github.com/shadcn.png" />
-            <AvatarFallback>{settings.userName.substring(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>{userInitials}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold truncate">{settings.userName}</p>
+            <p className="text-sm font-bold truncate">{userName}</p>
             <p className="text-[10px] text-muted-foreground">Administrador</p>
           </div>
         </div>
@@ -123,12 +126,12 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
               <div className="h-8 w-[1px] bg-border mx-2" />
               <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
                 <div className="text-right hidden sm:block">
-                  <p className="text-sm font-bold leading-none">{settings.userName}</p>
+                  <p className="text-sm font-bold leading-none">{userName}</p>
                   <p className="text-[10px] text-muted-foreground mt-1">Painel de Controle</p>
                 </div>
                 <Avatar className="h-9 w-9 border-2 border-primary/20">
                   <AvatarImage src="https://github.com/shadcn.png" />
-                  <AvatarFallback>{settings.userName.substring(0, 2).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback>{userInitials}</AvatarFallback>
                 </Avatar>
                 <ChevronDown size={14} className="text-muted-foreground" />
               </div>
