@@ -6,7 +6,8 @@ import {
   Plus, Search, ShoppingBag, Calendar, 
   TrendingUp, ArrowUpRight, Filter, 
   CheckCircle2, Clock, Package, ExternalLink,
-  AlertCircle, DollarSign, CreditCard, Store
+  AlertCircle, DollarSign, CreditCard, Store,
+  Printer as PrinterIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,7 +36,7 @@ import { format, startOfMonth, isWithinInterval, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const Sales = () => {
-  const { sales, products, addSale, settings, calculateProductCost } = useApp();
+  const { sales, products, printers, addSale, settings, calculateProductCost } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
@@ -44,7 +45,8 @@ const Sales = () => {
     productId: '',
     quantity: 1,
     channel: 'Direto',
-    status: 'pago'
+    status: 'pago',
+    printerId: printers[0]?.id || ''
   });
 
   // --- ESTATÍSTICAS DE VENDAS ---
@@ -89,7 +91,14 @@ const Sales = () => {
     if (!newSale.productId) return;
     addSale(newSale);
     setIsAddDialogOpen(false);
-    setNewSale({ date: new Date().toISOString(), productId: '', quantity: 1, channel: 'Direto', status: 'pago' });
+    setNewSale({ 
+      date: new Date().toISOString(), 
+      productId: '', 
+      quantity: 1, 
+      channel: 'Direto', 
+      status: 'pago',
+      printerId: printers[0]?.id || ''
+    });
     showSuccess('Venda registrada com sucesso!');
   };
 
@@ -156,17 +165,30 @@ const Sales = () => {
                 </div>
               </div>
 
-              <div className="grid gap-2">
-                <Label className="text-xs font-bold uppercase text-slate-400">Preço Praticado (Unitário)</Label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">{settings.currency}</span>
-                  <Input 
-                    type="number" step="0.01" inputMode="decimal"
-                    placeholder={selectedProduct ? selectedProduct.salePrice.toString() : "0.00"}
-                    className="h-12 pl-12 rounded-xl border-slate-200 font-bold" 
-                    value={newSale.customPrice || ''}
-                    onChange={e => setNewSale({...newSale, customPrice: e.target.value ? Number(e.target.value) : undefined})}
-                  />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label className="text-xs font-bold uppercase text-slate-400">Preço Unitário</Label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">{settings.currency}</span>
+                    <Input 
+                      type="number" step="0.01" inputMode="decimal"
+                      placeholder={selectedProduct ? selectedProduct.salePrice.toString() : "0.00"}
+                      className="h-12 pl-12 rounded-xl border-slate-200 font-bold" 
+                      value={newSale.customPrice || ''}
+                      onChange={e => setNewSale({...newSale, customPrice: e.target.value ? Number(e.target.value) : undefined})}
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label className="text-xs font-bold uppercase text-slate-400">Impressora Usada</Label>
+                  <Select value={newSale.printerId} onValueChange={(v) => setNewSale({...newSale, printerId: v})}>
+                    <SelectTrigger className="h-12 rounded-xl border-slate-200"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {printers.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
