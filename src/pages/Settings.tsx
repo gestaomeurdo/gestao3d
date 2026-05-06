@@ -5,7 +5,8 @@ import { useApp, SaleChannel, FilamentType } from '@/context/AppContext';
 import { 
   Save, Zap, CreditCard, User, Monitor, Layers, 
   Plus, Trash2, Download, Upload, ShieldCheck,
-  Database, Scale, Target, Layout, AlertTriangle
+  Database, Scale, Target, Layout, AlertTriangle,
+  DollarSign, Weight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,7 +34,13 @@ const Settings = () => {
     expenses, printers, importAllData, clearAllData 
   } = useApp();
   
-  const [newFilament, setNewFilament] = useState({ name: '', type: 'PLA' as FilamentType, pricePerKg: 0, stockGrams: 1000 });
+  const [newFilament, setNewFilament] = useState({ 
+    name: '', 
+    type: 'PLA' as FilamentType, 
+    rollPrice: 0, 
+    rollWeightGrams: 1000, 
+    stockGrams: 1000 
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = () => {
@@ -41,9 +48,9 @@ const Settings = () => {
   };
 
   const handleAddFilament = () => {
-    if (!newFilament.name || newFilament.pricePerKg <= 0) return;
+    if (!newFilament.name || newFilament.rollPrice <= 0 || newFilament.rollWeightGrams <= 0) return;
     addFilament(newFilament);
-    setNewFilament({ name: '', type: 'PLA', pricePerKg: 0, stockGrams: 1000 });
+    setNewFilament({ name: '', type: 'PLA', rollPrice: 0, rollWeightGrams: 1000, stockGrams: 1000 });
     showSuccess('Filamento adicionado ao estoque!');
   };
 
@@ -173,7 +180,7 @@ const Settings = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end bg-secondary/20 p-4 rounded-2xl border border-border/50">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end bg-secondary/20 p-4 rounded-2xl border border-border/50">
               <div className="grid gap-2 md:col-span-2">
                 <Label>Nome / Marca</Label>
                 <Input placeholder="Ex: PLA Premium 3DLab" value={newFilament.name} onChange={e => setNewFilament({...newFilament, name: e.target.value})} className="bg-background" />
@@ -191,8 +198,12 @@ const Settings = () => {
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label>Preço/Kg</Label>
-                <Input type="number" className="bg-background" value={newFilament.pricePerKg || ''} onChange={e => setNewFilament({...newFilament, pricePerKg: Number(e.target.value)})} />
+                <Label className="flex items-center gap-1"><DollarSign size={12}/> Preço Rolo</Label>
+                <Input type="number" className="bg-background" value={newFilament.rollPrice || ''} onChange={e => setNewFilament({...newFilament, rollPrice: Number(e.target.value)})} />
+              </div>
+              <div className="grid gap-2">
+                <Label className="flex items-center gap-1"><Weight size={12}/> Peso (g)</Label>
+                <Input type="number" className="bg-background" value={newFilament.rollWeightGrams || ''} onChange={e => setNewFilament({...newFilament, rollWeightGrams: Number(e.target.value)})} />
               </div>
               <Button className="orange-gradient text-white" onClick={handleAddFilament}>
                 <Plus size={18} className="mr-2" /> Adicionar
@@ -208,12 +219,15 @@ const Settings = () => {
                     </div>
                     <div>
                       <p className="font-bold text-sm">{f.name}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold">{f.type} • {settings.currency} {f.pricePerKg.toFixed(2)}/kg</p>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">
+                        {f.type} • {settings.currency} {f.rollPrice.toFixed(2)} ({f.rollWeightGrams}g)
+                      </p>
+                      <p className="text-[9px] text-orange-600 font-black">Custo: {settings.currency} {(f.pricePerKg / 1000).toFixed(4)}/g</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <Label className="text-[10px] font-bold uppercase text-muted-foreground">Estoque (g)</Label>
+                      <Label className="text-[10px] font-bold uppercase text-muted-foreground">Estoque Atual (g)</Label>
                       <div className="flex items-center gap-2">
                         <Scale size={12} className={cn(f.stockGrams < 200 ? "text-rose-500" : "text-emerald-500")} />
                         <Input 

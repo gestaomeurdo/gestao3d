@@ -12,8 +12,10 @@ export interface Filament {
   id: string;
   name: string;
   type: FilamentType;
-  pricePerKg: number;
-  stockGrams: number;
+  rollPrice: number; // Preço pago pelo rolo
+  rollWeightGrams: number; // Peso total do rolo (ex: 1000g)
+  pricePerKg: number; // Calculado automaticamente
+  stockGrams: number; // O que resta no estoque
   color?: string;
 }
 
@@ -88,7 +90,7 @@ interface AppContextType {
   addPrinter: (printer: Omit<Printer, 'id'>) => void;
   updatePrinter: (id: string, printer: Partial<Printer>) => void;
   deletePrinter: (id: string) => void;
-  addFilament: (filament: Omit<Filament, 'id'>) => void;
+  addFilament: (filament: Omit<Filament, 'id' | 'pricePerKg'>) => void;
   updateFilament: (id: string, filament: Partial<Filament>) => void;
   deleteFilament: (id: string) => void;
   updateSettings: (settings: Partial<Settings>) => void;
@@ -103,7 +105,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [filaments, setFilaments] = useState<Filament[]>(() => {
     const saved = localStorage.getItem('printsaas_filaments');
     return saved ? JSON.parse(saved) : [
-      { id: 'f1', name: 'PLA Básico', type: 'PLA', pricePerKg: 120, stockGrams: 1000 }
+      { id: 'f1', name: 'PLA Básico', type: 'PLA', rollPrice: 120, rollWeightGrams: 1000, pricePerKg: 120, stockGrams: 1000 }
     ];
   });
 
@@ -158,17 +160,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const energy = Number(settings.energyCostPerHour) || 0;
     const extra = Number(product.additionalCost) || 0;
 
-    // Custo do filamento: (gramas / 1000) * preço por kg
     const filamentCost = (weight / 1000) * filamentPrice;
-    // Custo de energia: (minutos / 60) * custo por hora
     const energyCost = (time / 60) * energy;
     
     const total = filamentCost + energyCost + extra;
     return isNaN(total) ? 0 : total;
   };
 
-  const addFilament = (filament: Omit<Filament, 'id'>) => setFilaments([...filaments, { ...filament, id: Math.random().toString(36).substr(2, 9) }]);
-  const updateFilament = (id: string, updated: Partial<Filament>) => setFilaments(filaments.map(f => f.id === id ? { ...f, ...updated } : f));
+  const addFilament = (f: Omit<Filament, 'id' | 'pricePerKg'>) => {
+    const pricePerKg = (f.rollPrice / f.rollWeightGrams) * 1000;
+    setFilaments([...filaments, { ...f, pricePerKg, id: Math.random().toString(36).substr(2, 9) }]);
+  };
+
+  const updateFilament = (id: string, updated: Partial<Filament>) => {
+    setFilaments(filaments.map(f => {
+      if (f.id === id) {
+        const newFilament = { ...f, ...updated };
+        newFilament.pricePerKg = (newFilament.rollPrice / newFilament.rollWeightGrams) * 1000;
+        return newFilament;
+      }
+      return f;
+    }));
+  };
+
   const deleteFilament = (id: string) => setFilaments(filaments.filter(f => f.id !== id));
 
   const addProduct = (product: Omit<Product, 'id'>) => setProducts([...products, { ...product, id: Math.random().toString(36).substr(2, 9) }]);
@@ -193,7 +207,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProducts([]);
     setSales([]);
     setExpenses([]);
-    setFilaments([{ id: 'f1', name: 'PLA Básico', type: 'PLA', pricePerKg: 120, stockGrams: 1000 }]);
+    setFilaments([{ id: 'f1', name: 'PLA Básico', type: 'PLA', rollPrice: 120, rollWeightGrams: 1000, pricePerKg: 120, stockGrams: 1000 }]);
     showSuccess('Todos os dados foram limpos!');
   };
 
