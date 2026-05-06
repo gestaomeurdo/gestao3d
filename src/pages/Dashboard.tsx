@@ -5,21 +5,9 @@ import { useApp } from '@/context/AppContext';
 import { 
   TrendingUp, 
   DollarSign, 
-  Zap,
-  Clock,
-  Package,
-  Plus,
-  AlertTriangle,
-  CheckCircle2,
-  Printer as PrinterIcon,
-  ShoppingCart,
-  Receipt,
-  ArrowUpRight,
-  ArrowDownRight,
-  Layers,
-  Wallet,
-  PieChart,
   Target,
+  Wallet,
+  ShoppingCart,
   ArrowRightLeft
 } from 'lucide-react';
 import { 
@@ -38,12 +26,11 @@ import { Badge } from '@/components/ui/badge';
 import { cn, formatCurrency } from '@/lib/utils';
 import { format, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
 import { Link } from 'react-router-dom';
+import LowStockAlert from '@/components/LowStockAlert';
 
 const Dashboard = () => {
-  const { sales, products, printers, expenses, settings, filaments, calculateProductCost } = useApp();
+  const { sales, products, expenses, settings, calculateProductCost } = useApp();
 
-  // --- CÁLCULOS FINANCEIROS REAIS ---
-  
   const now = new Date();
   const monthStart = startOfMonth(now);
   const monthEnd = endOfMonth(now);
@@ -94,7 +81,6 @@ const Dashboard = () => {
     };
   }, [sales, expenses, products, calculateProductCost, settings, monthStart, monthEnd]);
 
-  // --- GERAÇÃO DE DADOS REAIS PARA O GRÁFICO (ÚLTIMOS 6 MESES) ---
   const chartData = useMemo(() => {
     const data = [];
     for (let i = 5; i >= 0; i--) {
@@ -179,7 +165,7 @@ const Dashboard = () => {
         </Card>
 
         <Card className="glass-card border-none shadow-md bg-rose-500/5 overflow-hidden relative">
-          <div className="absolute top-0 right-0 p-4 opacity-10 text-rose-500"><Receipt size={64} /></div>
+          <div className="absolute top-0 right-0 p-4 opacity-10 text-rose-500"><DollarSign size={64} /></div>
           <CardContent className="p-6">
             <p className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">Despesas Totais</p>
             <h3 className="text-3xl font-black text-rose-500 mt-2">{settings.currency} {formatCurrency((financialStats.monthlyFixedExpenses ?? 0) + (financialStats.monthlyProductionCost ?? 0))}</h3>
@@ -271,6 +257,8 @@ const Dashboard = () => {
         </div>
 
         <div className="space-y-8">
+          <LowStockAlert />
+          
           <Card className="glass-card border-none bg-primary/5 relative overflow-hidden">
             <div className="absolute -right-4 -bottom-4 opacity-10 text-primary rotate-12"><Target size={120} /></div>
             <CardContent className="p-6">
@@ -282,31 +270,6 @@ const Dashboard = () => {
                   <span className="text-lg font-black text-primary">{(goalProgress ?? 0).toFixed(0)}%</span>
                 </div>
                 <Progress value={goalProgress ?? 0} className="h-3 bg-primary/10" />
-                <p className="text-[10px] text-muted-foreground font-bold text-center">
-                  Você precisa de mais {settings.currency} {formatCurrency(Math.max(0, profitGoal - (financialStats.monthlyNetProfit ?? 0)))} para bater a meta.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card border-none">
-            <CardHeader>
-              <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Distribuição de Custos</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs font-bold">
-                  <span>Produção</span>
-                  <span>{( ( (financialStats.monthlyProductionCost ?? 0) / ( (financialStats.monthlyFixedExpenses ?? 0) + (financialStats.monthlyProductionCost ?? 0) || 1) ) * 100).toFixed(0)}%</span>
-                </div>
-                <Progress value={( (financialStats.monthlyProductionCost ?? 0) / ( (financialStats.monthlyFixedExpenses ?? 0) + (financialStats.monthlyProductionCost ?? 0) || 1) ) * 100} className="h-1.5 bg-orange-500/10" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs font-bold">
-                  <span>Despesas Fixas</span>
-                  <span>{( ( (financialStats.monthlyFixedExpenses ?? 0) / ( (financialStats.monthlyFixedExpenses ?? 0) + (financialStats.monthlyProductionCost ?? 0) || 1) ) * 100).toFixed(0)}%</span>
-                </div>
-                <Progress value={( (financialStats.monthlyFixedExpenses ?? 0) / ( (financialStats.monthlyFixedExpenses ?? 0) + (financialStats.monthlyProductionCost ?? 0) || 1) ) * 100} className="h-1.5 bg-blue-500/10" />
               </div>
             </CardContent>
           </Card>

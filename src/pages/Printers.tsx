@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useApp, Printer } from '@/context/AppContext';
 import { 
   Plus, Printer as PrinterIcon, Trash2, 
-  TrendingUp, AlertTriangle, CheckCircle2, 
-  DollarSign, Activity, Tool, Edit2
+  Edit2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +14,6 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogTrigger,
   DialogFooter
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -26,7 +24,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const Printers = () => {
-  const { printers, products, sales, addPrinter, deletePrinter, settings, calculateProductCost } = useApp();
+  const { printers, products, sales, addPrinter, updatePrinter, deletePrinter, settings, calculateProductCost } = useApp();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -54,19 +52,14 @@ const Printers = () => {
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name) return;
     
-    // Nota: Como o AppContext ainda não tem updatePrinter, vamos simular deletando e adicionando ou apenas mostrar a intenção.
-    // Para ser funcional, vou assumir que você quer que eu adicione updatePrinter no contexto também.
-    // Por enquanto, vou focar na UI e depois atualizo o contexto.
-    
     if (editingId) {
-      // Simulação de update (deleta e adiciona com mesmo ID se possível, ou apenas mostra sucesso)
-      // Idealmente atualizamos o AppContext.
-      showSuccess('Impressora atualizada!');
+      await updatePrinter(editingId, formData);
+      showSuccess('Equipamento atualizado!');
     } else {
-      addPrinter(formData);
+      await addPrinter(formData);
       showSuccess('Impressora adicionada!');
     }
     
@@ -207,21 +200,6 @@ const Printers = () => {
                     <span className="text-lg font-black text-slate-900">{paybackProgress.toFixed(0)}%</span>
                   </div>
                   <Progress value={paybackProgress} className="h-3 bg-slate-100" />
-                </div>
-
-                <div className="mt-8 pt-8 border-t border-slate-100 grid grid-cols-3 gap-4">
-                  <div className="text-center">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">Custo Aquisição</p>
-                    <p className="text-sm font-bold text-slate-900 mt-1">{settings.currency} {printer.purchasePrice.toFixed(2)}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">Média Lucro/Hora</p>
-                    <p className="text-sm font-bold text-slate-900 mt-1">{settings.currency} {totalHours > 0 ? (totalProfit / totalHours).toFixed(2) : '0.00'}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">Status Saúde</p>
-                    <p className="text-sm font-bold text-emerald-500 mt-1">Excelente</p>
-                  </div>
                 </div>
               </CardContent>
             </Card>
