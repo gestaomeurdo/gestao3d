@@ -7,7 +7,7 @@ import {
   TrendingUp, ArrowDownRight, Info, AlertCircle, 
   PieChart, Wallet, Repeat, Search, ArrowRightLeft,
   TrendingDown, BarChart3, Package, AlertTriangle,
-  Zap, Layers
+  Zap, Layers, FileText, Type
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -129,62 +129,106 @@ const Finance = () => {
         
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="orange-gradient text-white rounded-2xl h-12 px-6 shadow-lg shadow-orange-500/20">
+            <Button className="orange-gradient text-white rounded-2xl h-12 px-6 shadow-lg shadow-orange-500/20 transition-all hover:scale-105">
               <Plus className="mr-2 h-5 w-5" /> Novo Gasto
             </Button>
           </DialogTrigger>
-          <DialogContent className="glass-card border-border/50 sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle className="text-2xl">Registrar Despesa</DialogTitle>
-              <DialogDescription>Adicione gastos fixos ou variáveis.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-6 py-4">
-              <div className="grid gap-2">
-                <Label>Descrição</Label>
-                <Input 
-                  placeholder="Ex: Aluguel, Internet, Marketing..."
-                  className="bg-secondary/50 border-border/50 h-11 rounded-xl" 
-                  value={newExpense.description}
-                  onChange={e => setNewExpense({...newExpense, description: e.target.value})}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+          <DialogContent className="bg-white border-none sm:max-w-[500px] rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">
+            <div className="orange-gradient p-8 text-white">
+              <DialogHeader>
+                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-4">
+                  <Receipt size={24} />
+                </div>
+                <DialogTitle className="text-3xl font-black">Nova Despesa</DialogTitle>
+                <DialogDescription className="text-white/80 font-medium">
+                  Registre seus gastos para manter o lucro real atualizado.
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+
+            <div className="p-8 space-y-6">
+              <div className="space-y-4">
                 <div className="grid gap-2">
-                  <Label>Valor</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{settings.currency}</span>
-                    <Input 
-                      type="number" 
-                      className="pl-10 bg-secondary/50 border-border/50 h-11 rounded-xl" 
-                      value={newExpense.amount || ''}
-                      onChange={e => setNewExpense({...newExpense, amount: Number(e.target.value)})}
-                    />
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                    <FileText size={12} /> Descrição do Gasto
+                  </Label>
+                  <Input 
+                    placeholder="Ex: Aluguel da Oficina, Internet..."
+                    className="h-14 rounded-2xl border-secondary bg-secondary/30 px-5 focus-visible:ring-orange-500/20 font-medium" 
+                    value={newExpense.description}
+                    onChange={e => setNewExpense({...newExpense, description: e.target.value})}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                      <DollarSign size={12} /> Valor Total
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-5 top-1/2 -translate-y-1/2 font-bold text-muted-foreground">{settings.currency}</span>
+                      <Input 
+                        type="number" 
+                        className="h-14 pl-12 rounded-2xl border-secondary bg-secondary/30 focus-visible:ring-orange-500/20 font-black text-lg" 
+                        value={newExpense.amount || ''}
+                        onChange={e => setNewExpense({...newExpense, amount: Number(e.target.value)})}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                      <Type size={12} /> Categoria
+                    </Label>
+                    <Select value={newExpense.category} onValueChange={(v: ExpenseCategory) => setNewExpense({...newExpense, category: v})}>
+                      <SelectTrigger className="h-14 rounded-2xl border-secondary bg-secondary/30 px-5 focus:ring-orange-500/20 font-bold">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-none shadow-xl">
+                        <SelectItem value="filamento">🧵 Filamento</SelectItem>
+                        <SelectItem value="energia">⚡ Energia</SelectItem>
+                        <SelectItem value="manutenção">🔧 Manutenção</SelectItem>
+                        <SelectItem value="equipamentos">🖨️ Equipamentos</SelectItem>
+                        <SelectItem value="marketing">📣 Marketing</SelectItem>
+                        <SelectItem value="outros">📦 Outros</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label>Categoria</Label>
-                  <Select value={newExpense.category} onValueChange={(v: ExpenseCategory) => setNewExpense({...newExpense, category: v})}>
-                    <SelectTrigger className="bg-secondary/50 border-border/50 h-11 rounded-xl"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="filamento">Filamento</SelectItem>
-                      <SelectItem value="energia">Energia</SelectItem>
-                      <SelectItem value="manutenção">Manutenção</SelectItem>
-                      <SelectItem value="equipamentos">Equipamentos</SelectItem>
-                      <SelectItem value="marketing">Marketing</SelectItem>
-                      <SelectItem value="outros">Outros</SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                <div className="flex items-center justify-between p-5 bg-orange-500/5 rounded-[1.5rem] border border-orange-500/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center">
+                      <Repeat size={20} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-orange-900">Gasto Recorrente?</p>
+                      <p className="text-[10px] text-orange-600/70 font-bold uppercase">Repetir todos os meses</p>
+                    </div>
+                  </div>
+                  <Switch 
+                    checked={newExpense.isRecurring} 
+                    onCheckedChange={(v) => setNewExpense({...newExpense, isRecurring: v})}
+                    className="data-[state=checked]:bg-orange-500"
+                  />
                 </div>
               </div>
-              <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-2xl border border-border/50">
-                <Label className="text-sm font-bold">Despesa Recorrente?</Label>
-                <Switch checked={newExpense.isRecurring} onCheckedChange={(v) => setNewExpense({...newExpense, isRecurring: v})} />
+
+              <div className="flex gap-3 pt-2">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setIsAddDialogOpen(false)}
+                  className="flex-1 h-14 rounded-2xl font-bold text-muted-foreground hover:bg-secondary"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  className="flex-[2] orange-gradient text-white h-14 rounded-2xl font-black text-lg shadow-lg shadow-orange-500/20" 
+                  onClick={handleAddExpense}
+                >
+                  Confirmar Gasto
+                </Button>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setIsAddDialogOpen(false)}>Cancelar</Button>
-              <Button className="orange-gradient text-white px-8 rounded-xl" onClick={handleAddExpense}>Salvar</Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
@@ -221,7 +265,6 @@ const Finance = () => {
                         <span className="font-black text-rose-500">-{settings.currency} {formatCurrency(dre.productionCost)}</span>
                       </div>
                       
-                      {/* AUDITORIA COM DESIGN LEVE */}
                       <div className="bg-secondary/20 rounded-2xl p-5 space-y-4 border border-border/50">
                         <div className="flex items-center justify-between border-b border-border/50 pb-3">
                           <div className="flex items-center gap-2 text-orange-600 text-[10px] font-black uppercase tracking-wider">
