@@ -13,7 +13,7 @@ export interface Filament {
   name: string;
   type: FilamentType;
   pricePerKg: number;
-  stockGrams: number; // Novo: Quantidade em gramas no estoque
+  stockGrams: number;
   color?: string;
 }
 
@@ -66,6 +66,7 @@ export interface Settings {
   energyCostPerHour: number;
   channelFees: Record<SaleChannel, number>;
   currency: string;
+  monthlyProfitGoal: number; // Novo: Meta de lucro configurável
 }
 
 interface AppContextType {
@@ -131,6 +132,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       energyCostPerHour: 0.85,
       channelFees: { 'Mercado Livre': 16.5, 'Shopee': 14, 'Direto': 0, 'Instagram': 0 },
       currency: 'R$',
+      monthlyProfitGoal: 5000,
     };
   });
 
@@ -163,7 +165,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newSale = { ...sale, id: Math.random().toString(36).substr(2, 9) };
     setSales([...sales, newSale]);
 
-    // Baixa automática de estoque
     const product = products.find(p => p.id === sale.productId);
     if (product && product.filamentId) {
       const totalWeight = product.weightGrams * sale.quantity;

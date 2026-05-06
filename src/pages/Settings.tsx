@@ -5,7 +5,7 @@ import { useApp, SaleChannel, FilamentType } from '@/context/AppContext';
 import { 
   Save, Zap, CreditCard, User, Monitor, Layers, 
   Plus, Trash2, Download, Upload, ShieldCheck,
-  Database, Scale
+  Database, Scale, Target
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -85,12 +85,12 @@ const Settings = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* PERFIL E SISTEMA */}
+        {/* PERFIL E METAS */}
         <Card className="glass-card">
           <CardHeader>
             <div className="flex items-center gap-2">
               <User className="text-blue-500" size={20} />
-              <CardTitle>Perfil e Sistema</CardTitle>
+              <CardTitle>Perfil e Metas</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -99,8 +99,13 @@ const Settings = () => {
               <Input className="bg-secondary/50 border-border/50 h-11" value={settings.userName} onChange={e => updateSettings({ userName: e.target.value })} />
             </div>
             <div className="grid gap-2">
-              <Label>Nome do Sistema</Label>
-              <Input className="bg-secondary/50 border-border/50 h-11" value={settings.systemName} onChange={e => updateSettings({ systemName: e.target.value })} />
+              <Label className="flex items-center gap-2">
+                <Target size={14} className="text-primary" /> Meta de Lucro Mensal
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{settings.currency}</span>
+                <Input type="number" className="pl-10 bg-secondary/50 border-border/50 h-11 font-bold" value={settings.monthlyProfitGoal} onChange={e => updateSettings({ monthlyProfitGoal: Number(e.target.value) })} />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -131,7 +136,6 @@ const Settings = () => {
               <Layers className="text-orange-500" size={20} />
               <CardTitle>Estoque de Filamentos</CardTitle>
             </div>
-            <CardDescription>O estoque é descontado automaticamente a cada venda registrada.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end bg-secondary/20 p-4 rounded-2xl border border-border/50">
