@@ -6,7 +6,7 @@ import {
   Plus, Receipt, Trash2, Calendar, Tag, DollarSign, 
   TrendingUp, ArrowDownRight, Info, AlertCircle, 
   PieChart, Wallet, Repeat, Search, ArrowRightLeft,
-  TrendingDown, BarChart3
+  TrendingDown, BarChart3, Package
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,22 +54,41 @@ const Finance = () => {
     let productionCost = 0;
     let fees = 0;
     let shipping = 0;
+    
+    const productBreakdown: Record<string, { name: string, cost: number, qty: number }> = {};
 
     monthSales.forEach(s => {
       const p = products.find(prod => prod.id === s.productId);
       if (p) {
+        const unitCost = calculateProductCost(p);
+        const totalUnitCost = unitCost * s.quantity;
+        
         const price = s.customPrice || p.salePrice;
         revenue += price * s.quantity;
-        productionCost += calculateProductCost(p) * s.quantity;
+        productionCost += totalUnitCost;
         fees += (settings.channelFees[s.channel] / 100) * price * s.quantity;
         if (s.shippingPaidBy === 'vendedor') shipping += (s.shippingCost || 0);
+
+        if (!productBreakdown[p.id]) {
+          productBreakdown[p.id] = { name: p.name, cost: 0, qty: 0 };
+        }
+        productBreakdown[p.id].cost += totalUnitCost;
+        productBreakdown[p.id].qty += s.quantity;
       }
     });
 
     const fixedExpenses = monthExpenses.reduce((acc, e) => acc + e.amount, 0);
     const netProfit = revenue - productionCost - fees - shipping - fixedExpenses;
 
-    return { revenue, productionCost, fees, shipping, fixedExpenses, netProfit };
+    return { 
+      revenue, 
+      productionCost, 
+      fees, 
+      shipping, 
+      fixedExpenses, 
+      netProfit,
+      productBreakdown: Object.values(productBreakdown).sort((a, b) => b.cost - a.cost)
+    };
   }, [sales, expenses, products, calculateProductCost, settings]);
 
   const handleAddExpense = () => {
@@ -186,9 +205,21 @@ const Finance = () => {
                     <span className="font-black text-emerald-600">+{settings.currency} {dre.revenue.toLocaleString()}</span>
                   </div>
                   <div className="p-6 space-y-4">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">(-) Custos de Produção (Filamento/Energia)</span>
-                      <span className="font-bold text-rose-500">-{settings.currency} {dre.productionCost.toLocaleString()}</span>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">(-) Custos de Produção (Filamento/Energia)</span>
+                        <span className="font-bold text-rose-500">-{settings.currency} {dre.productionCost.toLocaleString()}</span>
+                      </div>
+                      {/* DETALHAMENTO DE CUSTOS POR PRODUTO */}
+                      <div className="mt-2 space-y-1 pl-4 border-l-2 border-rose-100">
+                        {dre.productBreakdown.slice(0, 5).map((item, idx) => (
+                          <div key={idx} className="flex justify-between text-[10px] font-bold uppercase text-slate-400">
+                            <span>{item.qty}x {item.name}</span>
+                            <span>{settings.currency} {item.cost.toLocaleString()}</span>
+                          </div>
+                        ))}
+                        {dre.productBreakdown.length > 5 && <p className="text-[9px] text-slate-300 italic">...e outros produtos</p>}
+                      </div>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">(-) Taxas de Canais (ML/Shopee)</span>
