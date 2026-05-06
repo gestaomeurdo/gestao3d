@@ -35,7 +35,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { format, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
 import { Link } from 'react-router-dom';
 
@@ -151,7 +151,7 @@ const Dashboard = () => {
           </div>
           <div>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Saldo em Caixa</p>
-            <h2 className="text-2xl font-black text-emerald-500">{settings.currency} {(financialStats.cashBalance ?? 0).toLocaleString()}</h2>
+            <h2 className="text-2xl font-black text-emerald-500">{settings.currency} {formatCurrency(financialStats.cashBalance ?? 0)}</h2>
           </div>
           <div className="h-10 w-[1px] bg-border mx-2" />
           <Link to="/sales">
@@ -165,7 +165,7 @@ const Dashboard = () => {
           <div className="absolute top-0 right-0 p-4 opacity-10"><DollarSign size={64} /></div>
           <CardContent className="p-6">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Faturamento (Mês)</p>
-            <h3 className="text-3xl font-black mt-2">{settings.currency} {(financialStats.monthlyRevenue ?? 0).toLocaleString()}</h3>
+            <h3 className="text-3xl font-black mt-2">{settings.currency} {formatCurrency(financialStats.monthlyRevenue ?? 0)}</h3>
           </CardContent>
         </Card>
 
@@ -173,7 +173,7 @@ const Dashboard = () => {
           <div className="absolute top-0 right-0 p-4 opacity-10 text-emerald-500"><TrendingUp size={64} /></div>
           <CardContent className="p-6">
             <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Lucro Líquido Real</p>
-            <h3 className="text-3xl font-black text-emerald-500 mt-2">{settings.currency} {(financialStats.monthlyNetProfit ?? 0).toLocaleString()}</h3>
+            <h3 className="text-3xl font-black text-emerald-500 mt-2">{settings.currency} {formatCurrency(financialStats.monthlyNetProfit ?? 0)}</h3>
             <Badge className="mt-2 bg-emerald-500 text-white border-none">{(financialStats.margin ?? 0).toFixed(1)}% Margem</Badge>
           </CardContent>
         </Card>
@@ -182,7 +182,7 @@ const Dashboard = () => {
           <div className="absolute top-0 right-0 p-4 opacity-10 text-rose-500"><Receipt size={64} /></div>
           <CardContent className="p-6">
             <p className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">Despesas Totais</p>
-            <h3 className="text-3xl font-black text-rose-500 mt-2">{settings.currency} {( (financialStats.monthlyFixedExpenses ?? 0) + (financialStats.monthlyProductionCost ?? 0) ).toLocaleString()}</h3>
+            <h3 className="text-3xl font-black text-rose-500 mt-2">{settings.currency} {formatCurrency((financialStats.monthlyFixedExpenses ?? 0) + (financialStats.monthlyProductionCost ?? 0))}</h3>
           </CardContent>
         </Card>
 
@@ -261,7 +261,7 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-emerald-500 font-black text-sm">+{settings.currency} {(sale.customPrice || product?.salePrice || 0).toFixed(2)}</p>
+                      <p className="text-emerald-500 font-black text-sm">+{settings.currency} {formatCurrency(sale.customPrice || product?.salePrice || 0)}</p>
                     </div>
                   </div>
                 );
@@ -275,7 +275,7 @@ const Dashboard = () => {
             <div className="absolute -right-4 -bottom-4 opacity-10 text-primary rotate-12"><Target size={120} /></div>
             <CardContent className="p-6">
               <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Meta de Lucro Mensal</p>
-              <h3 className="text-3xl font-black mt-1">{settings.currency} {(profitGoal ?? 0).toLocaleString()}</h3>
+              <h3 className="text-3xl font-black mt-1">{settings.currency} {formatCurrency(profitGoal ?? 0)}</h3>
               <div className="mt-6 space-y-4">
                 <div className="flex justify-between items-end">
                   <span className="text-xs font-bold">Progresso Real</span>
@@ -283,7 +283,7 @@ const Dashboard = () => {
                 </div>
                 <Progress value={goalProgress ?? 0} className="h-3 bg-primary/10" />
                 <p className="text-[10px] text-muted-foreground font-bold text-center">
-                  Você precisa de mais {settings.currency} {Math.max(0, profitGoal - (financialStats.monthlyNetProfit ?? 0)).toLocaleString()} para bater a meta.
+                  Você precisa de mais {settings.currency} {formatCurrency(Math.max(0, profitGoal - (financialStats.monthlyNetProfit ?? 0)))} para bater a meta.
                 </p>
               </div>
             </CardContent>
