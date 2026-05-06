@@ -6,7 +6,7 @@ import {
   Plus, Search, ShoppingBag, Calendar, 
   TrendingUp, ArrowUpRight, Filter, 
   CheckCircle2, Clock, Package, ExternalLink,
-  AlertCircle
+  AlertCircle, DollarSign, CreditCard, Store
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,8 +29,9 @@ import {
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { showSuccess } from '@/utils/toast';
-import { format } from 'date-fns';
+import { format, startOfMonth, isWithinInterval, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const Sales = () => {
@@ -45,6 +46,31 @@ const Sales = () => {
     channel: 'Direto',
     status: 'pago'
   });
+
+  // --- ESTATÍSTICAS DE VENDAS ---
+  const stats = useMemo(() => {
+    const now = new Date();
+    const start = startOfMonth(now);
+    const end = endOfMonth(now);
+    
+    const monthSales = sales.filter(s => isWithinInterval(new Date(s.date), { start, end }));
+    
+    let revenue = 0;
+    let profit = 0;
+    
+    monthSales.forEach(s => {
+      const p = products.find(prod => prod.id === s.productId);
+      if (p) {
+        const price = s.customPrice || p.salePrice;
+        const cost = calculateProductCost(p);
+        const fee = (settings.channelFees[s.channel] / 100) * price;
+        revenue += price * s.quantity;
+        profit += (price - cost - fee) * s.quantity;
+      }
+    });
+
+    return { revenue, profit, count: monthSales.length };
+  }, [sales, products, settings, calculateProductCost]);
 
   const selectedProduct = useMemo(() => 
     products.find(p => p.id === newSale.productId), 
@@ -67,37 +93,30 @@ const Sales = () => {
     showSuccess('Venda registrada com sucesso!');
   };
 
-  const getStatusColor = (status: SaleStatus) => {
-    switch (status) {
-      case 'pago': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-      case 'enviado': return 'bg-orange-500/10 text-orange-500 border-orange-500/20';
-      case 'entregue': return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
-      default: return 'bg-zinc-500/10 text-zinc-500 border-zinc-500/20';
-    }
-  };
-
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* HEADER E STATS */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Vendas</h1>
-          <p className="text-muted-foreground mt-1">Acompanhe seus pedidos e lucro líquido real.</p>
+          <h1 className="text-4xl font-bold tracking-tight text-slate-900">Histórico de Vendas</h1>
+          <p className="text-slate-500 mt-2">Acompanhe o crescimento do seu negócio e seu lucro real.</p>
         </div>
         
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white h-12 px-6 rounded-2xl gap-2 shadow-lg shadow-blue-500/20">
-              <Plus size={20} /> Nova Venda
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white h-12 px-8 rounded-2xl gap-2 shadow-lg shadow-blue-600/20 transition-all hover:scale-105">
+              <Plus size={20} /> Registrar Venda
             </Button>
           </DialogTrigger>
-          <DialogContent className="glass-card border-border/50 sm:max-w-[500px]">
+          <DialogContent className="bg-white border-none sm:max-w-[500px] rounded-3xl p-8">
             <DialogHeader>
-              <DialogTitle className="text-2xl">Registrar Venda Rápida</DialogTitle>
+              <DialogTitle className="text-2xl font-bold">Nova Venda</DialogTitle>
+              <p className="text-slate-500 text-sm">Registre os detalhes para calcular o lucro desta operação.</p>
             </DialogHeader>
             
-            <div className="grid gap-6 py-4">
+            <div className="grid gap-6 py-6">
               <div className="grid gap-2">
-                <Label>Produto</Label>
+                <Label className="text-xs font-bold uppercase text-slate-400">Produto Vendido</Label>
                 <Select 
                   value={newSale.productId} 
                   onValueChange={(v) => {
@@ -105,9 +124,7 @@ const Sales = () => {
                     setNewSale({...newSale, productId: v, channel: prod?.defaultChannel || 'Direto'});
                   }}
                 >
-                  <SelectTrigger className="bg-secondary/50 border-border/50 h-12 rounded-xl">
-                    <SelectValue placeholder="Selecione o produto" />
-                  </SelectTrigger>
+                  <SelectTrigger className="h-12 rounded-xl border-slate-200"><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
                   <SelectContent>
                     {products.map(p => (
                       <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
@@ -118,23 +135,17 @@ const Sales = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label>Quantidade</Label>
+                  <Label className="text-xs font-bold uppercase text-slate-400">Quantidade</Label>
                   <Input 
-                    type="number" 
-                    className="bg-secondary/50 border-border/50 h-12 rounded-xl" 
+                    type="number" className="h-12 rounded-xl border-slate-200" 
                     value={newSale.quantity || ''}
                     onChange={e => setNewSale({...newSale, quantity: Number(e.target.value)})}
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label>Canal</Label>
-                  <Select 
-                    value={newSale.channel} 
-                    onValueChange={(v: SaleChannel) => setNewSale({...newSale, channel: v})}
-                  >
-                    <SelectTrigger className="bg-secondary/50 border-border/50 h-12 rounded-xl">
-                      <SelectValue />
-                    </SelectTrigger>
+                  <Label className="text-xs font-bold uppercase text-slate-400">Canal</Label>
+                  <Select value={newSale.channel} onValueChange={(v: SaleChannel) => setNewSale({...newSale, channel: v})}>
+                    <SelectTrigger className="h-12 rounded-xl border-slate-200"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Mercado Livre">Mercado Livre</SelectItem>
                       <SelectItem value="Shopee">Shopee</SelectItem>
@@ -146,15 +157,13 @@ const Sales = () => {
               </div>
 
               <div className="grid gap-2">
-                <Label>Preço de Venda (Unitário)</Label>
+                <Label className="text-xs font-bold uppercase text-slate-400">Preço Praticado (Unitário)</Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{settings.currency}</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">{settings.currency}</span>
                   <Input 
-                    type="number" 
-                    step="0.01"
-                    inputMode="decimal"
+                    type="number" step="0.01" inputMode="decimal"
                     placeholder={selectedProduct ? selectedProduct.salePrice.toString() : "0.00"}
-                    className="pl-10 bg-secondary/50 border-border/50 h-12 rounded-xl" 
+                    className="h-12 pl-12 rounded-xl border-slate-200 font-bold" 
                     value={newSale.customPrice || ''}
                     onChange={e => setNewSale({...newSale, customPrice: e.target.value ? Number(e.target.value) : undefined})}
                   />
@@ -162,13 +171,13 @@ const Sales = () => {
               </div>
 
               {selectedProduct && (
-                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-between">
+                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Lucro Líquido Estimado</p>
-                    <p className="text-2xl font-black text-emerald-500">{settings.currency} {currentSaleProfit.toFixed(2)}</p>
+                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Lucro Líquido Desta Venda</p>
+                    <p className="text-3xl font-black text-emerald-600">{settings.currency} {currentSaleProfit.toFixed(2)}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Taxa Canal</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Taxas</p>
                     <p className="text-sm font-bold text-rose-500">-{settings.currency} {((settings.channelFees[newSale.channel] / 100) * (newSale.customPrice || selectedProduct.salePrice) * newSale.quantity).toFixed(2)}</p>
                   </div>
                 </div>
@@ -176,20 +185,58 @@ const Sales = () => {
             </div>
 
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setIsAddDialogOpen(false)}>Cancelar</Button>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 rounded-xl" onClick={handleAddSale}>Confirmar Venda</Button>
+              <Button variant="ghost" onClick={() => setIsAddDialogOpen(false)} className="rounded-xl">Cancelar</Button>
+              <Button className="bg-blue-600 text-white px-8 rounded-xl h-12" onClick={handleAddSale}>Confirmar Venda</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="bg-card border border-border/50 rounded-3xl overflow-hidden shadow-sm">
-        <div className="p-4 border-b border-border/50 flex flex-col md:flex-row items-center gap-4">
+      {/* CARDS DE RESUMO DO MÊS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bg-white border-slate-200 rounded-3xl shadow-sm border">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl"><Store size={24} /></div>
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase">Faturamento (Mês)</p>
+                <h3 className="text-2xl font-black text-slate-900">{settings.currency} {stats.revenue.toFixed(2)}</h3>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white border-slate-200 rounded-3xl shadow-sm border">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl"><TrendingUp size={24} /></div>
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase">Lucro Real (Mês)</p>
+                <h3 className="text-2xl font-black text-emerald-600">{settings.currency} {stats.profit.toFixed(2)}</h3>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-white border-slate-200 rounded-3xl shadow-sm border">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl"><ShoppingBag size={24} /></div>
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase">Pedidos (Mês)</p>
+                <h3 className="text-2xl font-black text-slate-900">{stats.count} vendas</h3>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* LISTA DE VENDAS */}
+      <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+        <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row items-center gap-4">
           <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <Input 
               placeholder="Buscar por produto..." 
-              className="pl-10 bg-secondary/30 border-none rounded-xl h-10"
+              className="pl-12 h-12 rounded-2xl border-slate-200 bg-slate-50/50 focus:ring-blue-500"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
@@ -198,22 +245,21 @@ const Sales = () => {
 
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-secondary/30">
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest">Data</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest">Produto</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest">Canal</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest">Valor Total</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest">Lucro Líquido</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest">Status</TableHead>
-                <TableHead className="text-right"></TableHead>
+            <TableHeader className="bg-slate-50">
+              <TableRow className="border-slate-100 hover:bg-transparent">
+                <TableHead className="text-[10px] font-bold uppercase text-slate-400 px-6">Data</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase text-slate-400">Produto</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase text-slate-400">Canal</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase text-slate-400">Valor Total</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase text-slate-400">Lucro Líquido</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase text-slate-400 text-right px-6">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sales.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                    Nenhuma venda registrada. Comece agora!
+                  <TableCell colSpan={6} className="h-48 text-center text-slate-400">
+                    Nenhuma venda registrada ainda.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -234,39 +280,34 @@ const Sales = () => {
                     const netProfit = totalPrice - cost - fee;
 
                     return (
-                      <TableRow key={sale.id} className="border-border/50 hover:bg-secondary/20 transition-colors">
-                        <TableCell className="text-xs font-medium text-muted-foreground">
+                      <TableRow key={sale.id} className="border-slate-100 hover:bg-slate-50/50 transition-colors">
+                        <TableCell className="text-xs font-medium text-slate-500 px-6">
                           {format(new Date(sale.date), 'dd/MM/yyyy')}
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col">
-                            <span className="font-bold text-sm">{product.name}</span>
-                            <span className="text-[10px] text-muted-foreground uppercase font-bold">Qtd: {sale.quantity}</span>
+                            <span className="font-bold text-slate-900">{product.name}</span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase">Qtd: {sale.quantity}</span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="rounded-lg border-border/50 text-[10px] font-bold uppercase">
+                          <Badge variant="outline" className="rounded-lg border-slate-200 text-[10px] font-bold uppercase text-slate-500">
                             {sale.channel}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-bold text-sm">
+                        <TableCell className="font-bold text-slate-900">
                           {settings.currency} {totalPrice.toFixed(2)}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <span className="text-emerald-500 font-black text-sm">
+                            <span className={cn("font-black text-sm", netProfit > 0 ? "text-emerald-500" : "text-rose-500")}>
                               {settings.currency} {netProfit.toFixed(2)}
                             </span>
-                            <ArrowUpRight size={12} className="text-emerald-500" />
+                            {netProfit > 0 && <ArrowUpRight size={12} className="text-emerald-500" />}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <Badge className={cn("capitalize border-none rounded-lg text-[10px] font-bold", getStatusColor(sale.status))}>
-                            {sale.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground">
+                        <TableCell className="text-right px-6">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-slate-900">
                             <ExternalLink size={14} />
                           </Button>
                         </TableCell>
