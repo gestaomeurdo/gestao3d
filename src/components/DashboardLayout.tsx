@@ -15,7 +15,8 @@ import {
   Bell,
   Moon,
   Sun,
-  ChevronDown
+  ChevronDown,
+  Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -29,8 +30,8 @@ const navItems = [
     { name: 'Vendas', path: '/sales', icon: ShoppingCart },
   ]},
   { group: "Operação", items: [
+    { name: 'Financeiro', path: '/finance', icon: Wallet },
     { name: 'Impressoras', path: '/printers', icon: PrinterIcon },
-    { name: 'Despesas', path: '/expenses', icon: Receipt },
   ]},
   { group: "Sistema", items: [
     { name: 'Configurações', path: '/settings', icon: SettingsIcon },

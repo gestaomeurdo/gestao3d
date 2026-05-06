@@ -10,7 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Sales from "./pages/Sales";
 import Printers from "./pages/Printers";
-import Expenses from "./pages/Expenses";
+import Finance from "./pages/Finance";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -30,7 +30,7 @@ const App = () => (
                 <Route path="/products" element={<Products />} />
                 <Route path="/sales" element={<Sales />} />
                 <Route path="/printers" element={<Printers />} />
-                <Route path="/expenses" element={<Expenses />} />
+                <Route path="/finance" element={<Finance />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
