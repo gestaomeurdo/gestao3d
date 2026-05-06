@@ -220,9 +220,9 @@ const Settings = () => {
                     <div>
                       <p className="font-bold text-sm">{f.name}</p>
                       <p className="text-[10px] text-muted-foreground uppercase font-bold">
-                        {f.type} • {settings.currency} {f.rollPrice.toFixed(2)} ({f.rollWeightGrams}g)
+                        {f.type} • {settings.currency} {(f.rollPrice || 0).toFixed(2)} ({f.rollWeightGrams || 0}g)
                       </p>
-                      <p className="text-[9px] text-orange-600 font-black">Custo: {settings.currency} {(f.pricePerKg / 1000).toFixed(4)}/g</p>
+                      <p className="text-[9px] text-orange-600 font-black">Custo: {settings.currency} {((f.pricePerKg || 0) / 1000).toFixed(4)}/g</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
