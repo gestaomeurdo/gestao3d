@@ -16,7 +16,8 @@ import {
   ShoppingCart,
   Receipt,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Layers
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -33,7 +34,7 @@ import { format, isToday, startOfDay } from 'date-fns';
 import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
-  const { sales, products, printers, expenses, settings, calculateProductCost } = useApp();
+  const { sales, products, printers, expenses, settings, filaments, calculateProductCost } = useApp();
 
   // --- LÓGICA DE DADOS ---
   
@@ -64,34 +65,23 @@ const Dashboard = () => {
     return { revenue, profit, pieces, time, margin };
   }, [todaySales, products, calculateProductCost]);
 
-  const topProducts = useMemo(() => {
-    return [...products]
-      .map(p => {
-        const cost = calculateProductCost(p);
-        const profit = p.salePrice - cost;
-        const margin = (profit / p.salePrice) * 100;
-        const sold = sales.filter(s => s.productId === p.id).reduce((acc, s) => acc + s.quantity, 0);
-        return { ...p, profit, margin, sold };
-      })
-      .sort((a, b) => b.profit - a.profit)
-      .slice(0, 3);
-  }, [products, sales, calculateProductCost]);
-
   const alerts = useMemo(() => {
     const list = [];
+    
+    // Alerta de Impressoras Paradas
     const idlePrinters = printers.filter(p => p.status === 'disponível').length;
     if (idlePrinters > 0) list.push({ type: 'warning', text: `${idlePrinters} impressora(s) parada(s)` });
     
-    const lowMarginProds = products.filter(p => {
-      const cost = calculateProductCost(p);
-      return ((p.salePrice - cost) / p.salePrice) < 0.3;
-    }).length;
-    if (lowMarginProds > 0) list.push({ type: 'danger', text: `${lowMarginProds} produto(s) com margem < 30%` });
+    // Alerta de Estoque Baixo (menos de 200g)
+    const lowStockFilaments = filaments.filter(f => f.stockGrams < 200);
+    lowStockFilaments.forEach(f => {
+      list.push({ type: 'danger', text: `Estoque crítico: ${f.name} (${f.stockGrams}g)` });
+    });
     
     if (todaySales.length === 0) list.push({ type: 'info', text: "Nenhuma venda registrada hoje" });
     
     return list;
-  }, [printers, products, todaySales, calculateProductCost]);
+  }, [printers, filaments, todaySales]);
 
   // Mock de dados para o mini gráfico (últimos 7 dias)
   const chartData = [
@@ -100,8 +90,8 @@ const Dashboard = () => {
     { day: 'Dom', profit: stats.profit || 200 }
   ];
 
-  const monthlyGoal = 5000; // Exemplo de meta
-  const currentMonthlyProfit = stats.profit * 20; // Simulação
+  const monthlyGoal = 5000; 
+  const currentMonthlyProfit = stats.profit * 20; 
   const goalProgress = Math.min((currentMonthlyProfit / monthlyGoal) * 100, 100);
 
   return (
@@ -150,10 +140,10 @@ const Dashboard = () => {
             <span className="font-bold">+ Despesa</span>
           </Button>
         </Link>
-        <Link to="/printers">
+        <Link to="/settings">
           <Button variant="outline" className="w-full h-20 border-2 border-primary/20 hover:bg-primary/5 text-primary rounded-2xl flex flex-col gap-1">
-            <PrinterIcon size={20} />
-            <span className="font-bold">+ Impressão</span>
+            <Layers size={20} />
+            <span className="font-bold">Estoque</span>
           </Button>
         </Link>
       </div>
@@ -255,23 +245,30 @@ const Dashboard = () => {
               <TrendingUp size={20} className="text-emerald-500" /> Top Lucratividade
             </h2>
             <div className="space-y-3">
-              {topProducts.map((product, idx) => (
-                <div key={product.id} className="flex items-center justify-between p-4 glass-card rounded-2xl border-border/50">
-                  <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-bold">
-                      #{idx + 1}
+              {products.slice(0, 3).map((product, idx) => {
+                const cost = calculateProductCost(product);
+                const profit = product.salePrice - cost;
+                const margin = (profit / product.salePrice) * 100;
+                const sold = sales.filter(s => s.productId === product.id).reduce((acc, s) => acc + s.quantity, 0);
+                
+                return (
+                  <div key={product.id} className="flex items-center justify-between p-4 glass-card rounded-2xl border-border/50">
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-bold">
+                        #{idx + 1}
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm">{product.name}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold">{sold} unidades vendidas</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-sm">{product.name}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold">{product.sold} unidades vendidas</p>
+                    <div className="text-right">
+                      <p className="text-emerald-500 font-black text-sm">+{settings.currency} {profit.toFixed(2)}/un</p>
+                      <p className="text-[10px] font-bold text-primary">{margin.toFixed(0)}% margem</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-emerald-500 font-black text-sm">+{settings.currency} {product.profit.toFixed(2)}/un</p>
-                    <p className="text-[10px] font-bold text-primary">{product.margin.toFixed(0)}% margem</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         </div>

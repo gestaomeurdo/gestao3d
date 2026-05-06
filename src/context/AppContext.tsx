@@ -13,6 +13,7 @@ export interface Filament {
   name: string;
   type: FilamentType;
   pricePerKg: number;
+  stockGrams: number; // Novo: Quantidade em gramas no estoque
   color?: string;
 }
 
@@ -83,6 +84,7 @@ interface AppContextType {
   addPrinter: (printer: Omit<Printer, 'id'>) => void;
   deletePrinter: (id: string) => void;
   addFilament: (filament: Omit<Filament, 'id'>) => void;
+  updateFilament: (id: string, filament: Partial<Filament>) => void;
   deleteFilament: (id: string) => void;
   updateSettings: (settings: Partial<Settings>) => void;
   calculateProductCost: (product: Product) => number;
@@ -95,7 +97,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [filaments, setFilaments] = useState<Filament[]>(() => {
     const saved = localStorage.getItem('printsaas_filaments');
     return saved ? JSON.parse(saved) : [
-      { id: 'f1', name: 'PLA Básico', type: 'PLA', pricePerKg: 120 }
+      { id: 'f1', name: 'PLA Básico', type: 'PLA', pricePerKg: 120, stockGrams: 1000 }
     ];
   });
 
@@ -150,13 +152,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addFilament = (filament: Omit<Filament, 'id'>) => setFilaments([...filaments, { ...filament, id: Math.random().toString(36).substr(2, 9) }]);
+  const updateFilament = (id: string, updated: Partial<Filament>) => setFilaments(filaments.map(f => f.id === id ? { ...f, ...updated } : f));
   const deleteFilament = (id: string) => setFilaments(filaments.filter(f => f.id !== id));
 
   const addProduct = (product: Omit<Product, 'id'>) => setProducts([...products, { ...product, id: Math.random().toString(36).substr(2, 9) }]);
   const updateProduct = (id: string, updated: Partial<Product>) => setProducts(products.map(p => p.id === id ? { ...p, ...updated } : p));
   const deleteProduct = (id: string) => setProducts(products.filter(p => p.id !== id));
   
-  const addSale = (sale: Omit<Sale, 'id'>) => setSales([...sales, { ...sale, id: Math.random().toString(36).substr(2, 9) }]);
+  const addSale = (sale: Omit<Sale, 'id'>) => {
+    const newSale = { ...sale, id: Math.random().toString(36).substr(2, 9) };
+    setSales([...sales, newSale]);
+
+    // Baixa automática de estoque
+    const product = products.find(p => p.id === sale.productId);
+    if (product && product.filamentId) {
+      const totalWeight = product.weightGrams * sale.quantity;
+      setFilaments(prev => prev.map(f => 
+        f.id === product.filamentId 
+          ? { ...f, stockGrams: Math.max(0, f.stockGrams - totalWeight) } 
+          : f
+      ));
+    }
+  };
   
   const addExpense = (expense: Omit<Expense, 'id'>) => setExpenses([...expenses, { ...expense, id: Math.random().toString(36).substr(2, 9) }]);
   const deleteExpense = (id: string) => setExpenses(expenses.filter(e => e.id !== id));
@@ -180,7 +197,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       products, sales, expenses, printers, filaments, settings, 
       addProduct, updateProduct, deleteProduct, 
       addSale, addExpense, deleteExpense, addPrinter, deletePrinter,
-      addFilament, deleteFilament, updateSettings,
+      addFilament, updateFilament, deleteFilament, updateSettings,
       calculateProductCost, importAllData
     }}>
       {children}
