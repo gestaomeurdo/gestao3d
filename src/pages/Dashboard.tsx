@@ -133,7 +133,8 @@ const Dashboard = () => {
     return data;
   }, [sales, expenses, products, calculateProductCost, settings]);
 
-  const goalProgress = Math.min((financialStats.monthlyNetProfit / settings.monthlyProfitGoal) * 100, 100);
+  const profitGoal = settings.monthlyProfitGoal ?? 5000;
+  const goalProgress = Math.min((financialStats.monthlyNetProfit / profitGoal) * 100, 100);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -150,7 +151,7 @@ const Dashboard = () => {
           </div>
           <div>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Saldo em Caixa</p>
-            <h2 className="text-2xl font-black text-emerald-500">{settings.currency} {financialStats.cashBalance.toLocaleString()}</h2>
+            <h2 className="text-2xl font-black text-emerald-500">{settings.currency} {(financialStats.cashBalance ?? 0).toLocaleString()}</h2>
           </div>
           <div className="h-10 w-[1px] bg-border mx-2" />
           <Link to="/sales">
@@ -164,7 +165,7 @@ const Dashboard = () => {
           <div className="absolute top-0 right-0 p-4 opacity-10"><DollarSign size={64} /></div>
           <CardContent className="p-6">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Faturamento (Mês)</p>
-            <h3 className="text-3xl font-black mt-2">{settings.currency} {financialStats.monthlyRevenue.toLocaleString()}</h3>
+            <h3 className="text-3xl font-black mt-2">{settings.currency} {(financialStats.monthlyRevenue ?? 0).toLocaleString()}</h3>
           </CardContent>
         </Card>
 
@@ -172,8 +173,8 @@ const Dashboard = () => {
           <div className="absolute top-0 right-0 p-4 opacity-10 text-emerald-500"><TrendingUp size={64} /></div>
           <CardContent className="p-6">
             <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Lucro Líquido Real</p>
-            <h3 className="text-3xl font-black text-emerald-500 mt-2">{settings.currency} {financialStats.monthlyNetProfit.toLocaleString()}</h3>
-            <Badge className="mt-2 bg-emerald-500 text-white border-none">{financialStats.margin.toFixed(1)}% Margem</Badge>
+            <h3 className="text-3xl font-black text-emerald-500 mt-2">{settings.currency} {(financialStats.monthlyNetProfit ?? 0).toLocaleString()}</h3>
+            <Badge className="mt-2 bg-emerald-500 text-white border-none">{(financialStats.margin ?? 0).toFixed(1)}% Margem</Badge>
           </CardContent>
         </Card>
 
@@ -181,7 +182,7 @@ const Dashboard = () => {
           <div className="absolute top-0 right-0 p-4 opacity-10 text-rose-500"><Receipt size={64} /></div>
           <CardContent className="p-6">
             <p className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">Despesas Totais</p>
-            <h3 className="text-3xl font-black text-rose-500 mt-2">{settings.currency} {(financialStats.monthlyFixedExpenses + financialStats.monthlyProductionCost).toLocaleString()}</h3>
+            <h3 className="text-3xl font-black text-rose-500 mt-2">{settings.currency} {( (financialStats.monthlyFixedExpenses ?? 0) + (financialStats.monthlyProductionCost ?? 0) ).toLocaleString()}</h3>
           </CardContent>
         </Card>
 
@@ -189,8 +190,8 @@ const Dashboard = () => {
           <div className="absolute top-0 right-0 p-4 opacity-10"><Target size={64} /></div>
           <CardContent className="p-6">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Progresso da Meta</p>
-            <h3 className="text-3xl font-black mt-2">{goalProgress.toFixed(0)}%</h3>
-            <Progress value={goalProgress} className="h-2 mt-4 bg-primary/10" />
+            <h3 className="text-3xl font-black mt-2">{(goalProgress ?? 0).toFixed(0)}%</h3>
+            <Progress value={goalProgress ?? 0} className="h-2 mt-4 bg-primary/10" />
           </CardContent>
         </Card>
       </div>
@@ -274,15 +275,15 @@ const Dashboard = () => {
             <div className="absolute -right-4 -bottom-4 opacity-10 text-primary rotate-12"><Target size={120} /></div>
             <CardContent className="p-6">
               <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Meta de Lucro Mensal</p>
-              <h3 className="text-3xl font-black mt-1">{settings.currency} {settings.monthlyProfitGoal.toLocaleString()}</h3>
+              <h3 className="text-3xl font-black mt-1">{settings.currency} {(profitGoal ?? 0).toLocaleString()}</h3>
               <div className="mt-6 space-y-4">
                 <div className="flex justify-between items-end">
                   <span className="text-xs font-bold">Progresso Real</span>
-                  <span className="text-lg font-black text-primary">{goalProgress.toFixed(0)}%</span>
+                  <span className="text-lg font-black text-primary">{(goalProgress ?? 0).toFixed(0)}%</span>
                 </div>
-                <Progress value={goalProgress} className="h-3 bg-primary/10" />
+                <Progress value={goalProgress ?? 0} className="h-3 bg-primary/10" />
                 <p className="text-[10px] text-muted-foreground font-bold text-center">
-                  Você precisa de mais {settings.currency} {Math.max(0, settings.monthlyProfitGoal - financialStats.monthlyNetProfit).toLocaleString()} para bater a meta.
+                  Você precisa de mais {settings.currency} {Math.max(0, profitGoal - (financialStats.monthlyNetProfit ?? 0)).toLocaleString()} para bater a meta.
                 </p>
               </div>
             </CardContent>
@@ -296,16 +297,16 @@ const Dashboard = () => {
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-bold">
                   <span>Produção</span>
-                  <span>{((financialStats.monthlyProductionCost / (financialStats.monthlyFixedExpenses + financialStats.monthlyProductionCost || 1)) * 100).toFixed(0)}%</span>
+                  <span>{( ( (financialStats.monthlyProductionCost ?? 0) / ( (financialStats.monthlyFixedExpenses ?? 0) + (financialStats.monthlyProductionCost ?? 0) || 1) ) * 100).toFixed(0)}%</span>
                 </div>
-                <Progress value={(financialStats.monthlyProductionCost / (financialStats.monthlyFixedExpenses + financialStats.monthlyProductionCost || 1)) * 100} className="h-1.5 bg-orange-500/10" />
+                <Progress value={( (financialStats.monthlyProductionCost ?? 0) / ( (financialStats.monthlyFixedExpenses ?? 0) + (financialStats.monthlyProductionCost ?? 0) || 1) ) * 100} className="h-1.5 bg-orange-500/10" />
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-bold">
                   <span>Despesas Fixas</span>
-                  <span>{((financialStats.monthlyFixedExpenses / (financialStats.monthlyFixedExpenses + financialStats.monthlyProductionCost || 1)) * 100).toFixed(0)}%</span>
+                  <span>{( ( (financialStats.monthlyFixedExpenses ?? 0) / ( (financialStats.monthlyFixedExpenses ?? 0) + (financialStats.monthlyProductionCost ?? 0) || 1) ) * 100).toFixed(0)}%</span>
                 </div>
-                <Progress value={(financialStats.monthlyFixedExpenses / (financialStats.monthlyFixedExpenses + financialStats.monthlyProductionCost || 1)) * 100} className="h-1.5 bg-blue-500/10" />
+                <Progress value={( (financialStats.monthlyFixedExpenses ?? 0) / ( (financialStats.monthlyFixedExpenses ?? 0) + (financialStats.monthlyProductionCost ?? 0) || 1) ) * 100} className="h-1.5 bg-blue-500/10" />
               </div>
             </CardContent>
           </Card>
