@@ -121,58 +121,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     monthlyProfitGoal: 5000,
   });
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) fetchData(session.user.id);
-      else setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) fetchData(session.user.id);
-      else {
-        setFilaments([]);
-        setProducts([]);
-        setSales([]);
-        setExpenses([]);
-        setPrinters([]);
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   const fetchData = async (userId: string) => {
-    setLoading(true);
     try {
+      const { data: prof } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      
+      if (prof) {
+        setSettings({
+          userName: prof.first_name || '',
+          systemName: prof.system_name || 'PrintSaaS',
+          energyCostPerHour: Number(prof.energy_cost_per_hour || 0.85),
+          channelFees: prof.channel_fees || { 'Mercado Livre': 16.5, 'Shopee': 14, 'Direto': 0, 'Instagram': 0 },
+          currency: prof.currency || 'R$',
+          monthlyProfitGoal: Number(prof.monthly_profit_goal || 5000),
+        });
+      }
+
       const [
-        { data: prof },
         { data: fil },
         { data: prod },
         { data: sls },
         { data: exp },
         { data: prn }
       ] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', userId).single(),
         supabase.from('filaments').select('*').eq('user_id', userId),
         supabase.from('products').select('*').eq('user_id', userId),
         supabase.from('sales').select('*').eq('user_id', userId),
         supabase.from('expenses').select('*').eq('user_id', userId),
         supabase.from('printers').select('*').eq('user_id', userId)
       ]);
-
-      if (prof) {
-        setSettings({
-          userName: prof.first_name || '',
-          systemName: prof.system_name || 'PrintSaaS',
-          energyCostPerHour: Number(prof.energy_cost_per_hour),
-          channelFees: prof.channel_fees,
-          currency: prof.currency || 'R$',
-          monthlyProfitGoal: Number(prof.monthly_profit_goal),
-        });
-      }
 
       if (fil) setFilaments(fil.map(f => ({
         id: f.id, name: f.name, type: f.type as FilamentType,
@@ -208,11 +184,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })));
 
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.warn("Aviso: Falha parcial ao carregar dados, continuando...", error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) {
+        fetchData(session.user.id);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) {
+        fetchData(session.user.id);
+      } else {
+        setFilaments([]);
+        setProducts([]);
+        setSales([]);
+        setExpenses([]);
+        setPrinters([]);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const calculateProductCost = (product: Product) => {
     const filament = filaments.find(f => f.id === product.filamentId);
@@ -231,7 +234,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addFilament = async (f: Omit<Filament, 'id' | 'pricePerKg'>) => {
     if (!session) return;
     const pricePerKg = (f.rollPrice / f.rollWeightGrams) * 1000;
-    const { data, error } = await supabase.from('filaments').insert([{
+    const { data } = await supabase.from('filaments').insert([{
       ...f, price_per_kg: pricePerKg, user_id: session.user.id
     }]).select().single();
     if (data) setFilaments([...filaments, { ...f, pricePerKg, id: data.id }]);
@@ -242,7 +245,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...updated,
       price_per_kg: updated.rollPrice && updated.rollWeightGrams ? (updated.rollPrice / updated.rollWeightGrams) * 1000 : undefined
     }).eq('id', id);
-    if (!error) fetchData(session!.user.id);
+    if (!error && session) fetchData(session.user.id);
   };
 
   const deleteFilament = async (id: string) => {
@@ -252,7 +255,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addProduct = async (p: Omit<Product, 'id'>) => {
     if (!session) return;
-    const { data, error } = await supabase.from('products').insert([{
+    const { data } = await supabase.from('products').insert([{
       name: p.name, category: p.category, weight_grams: p.weightGrams,
       print_time_minutes: p.printTimeMinutes, filament_id: p.filamentId,
       sale_price: p.salePrice, additional_cost: p.additionalCost,
@@ -267,9 +270,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       name: p.name, category: p.category, weight_grams: p.weightGrams,
       print_time_minutes: p.printTimeMinutes, filament_id: p.filamentId,
       sale_price: p.salePrice, additional_cost: p.additionalCost,
-      default_channel: p.defaultChannel, image_url: p.imageUrl
+      default_channel: p.default_channel, image_url: p.imageUrl
     }).eq('id', id);
-    if (!error) fetchData(session!.user.id);
+    if (!error && session) fetchData(session.user.id);
   };
 
   const deleteProduct = async (id: string) => {
@@ -279,10 +282,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addSale = async (s: Omit<Sale, 'id'>) => {
     if (!session) return;
-    const { data, error } = await supabase.from('sales').insert([{
+    const { data } = await supabase.from('sales').insert([{
       product_id: s.productId, quantity: s.quantity, channel: s.channel,
       status: s.status, custom_price: s.customPrice, printer_id: s.printerId,
-      shipping_cost: s.shippingCost, shipping_paid_by: s.shippingPaidBy,
+      shipping_cost: s.shipping_cost, shipping_paid_by: s.shipping_paid_by,
       user_id: session.user.id, date: s.date
     }]).select().single();
     if (data) fetchData(session.user.id);
@@ -291,11 +294,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateSale = async (id: string, s: Partial<Sale>) => {
     const { error } = await supabase.from('sales').update({
       product_id: s.productId, quantity: s.quantity, channel: s.channel,
-      status: s.status, custom_price: s.customPrice, printer_id: s.printerId,
-      shipping_cost: s.shippingCost, shipping_paid_by: s.shippingPaidBy,
+      status: s.status, custom_price: s.custom_price, printer_id: s.printerId,
+      shipping_cost: s.shipping_cost, shipping_paid_by: s.shipping_paid_by,
       date: s.date
     }).eq('id', id);
-    if (!error) fetchData(session!.user.id);
+    if (!error && session) fetchData(session.user.id);
   };
 
   const deleteSale = async (id: string) => {
@@ -305,7 +308,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addExpense = async (e: Omit<Expense, 'id'>) => {
     if (!session) return;
-    const { data, error } = await supabase.from('expenses').insert([{
+    const { data } = await supabase.from('expenses').insert([{
       category: e.category, amount: e.amount, date: e.date,
       description: e.description, is_recurring: e.isRecurring,
       user_id: session.user.id
@@ -318,7 +321,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       category: e.category, amount: e.amount, date: e.date,
       description: e.description, is_recurring: e.isRecurring
     }).eq('id', id);
-    if (!error) fetchData(session!.user.id);
+    if (!error && session) fetchData(session.user.id);
   };
 
   const deleteExpense = async (id: string) => {
@@ -328,7 +331,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addPrinter = async (p: Omit<Printer, 'id'>) => {
     if (!session) return;
-    const { data, error } = await supabase.from('printers').insert([{
+    const { data } = await supabase.from('printers').insert([{
       name: p.name, purchase_price: p.purchasePrice, purchase_date: p.purchaseDate,
       status: p.status, user_id: session.user.id
     }]).select().single();
@@ -340,7 +343,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       name: p.name, purchase_price: p.purchasePrice, purchase_date: p.purchaseDate,
       status: p.status
     }).eq('id', id);
-    if (!error) fetchData(session!.user.id);
+    if (!error && session) fetchData(session.user.id);
   };
 
   const deletePrinter = async (id: string) => {
