@@ -6,6 +6,7 @@ export type FilamentType = 'PLA' | 'PETG' | 'ABS' | 'Resina' | 'Outro';
 export type SaleStatus = 'pago' | 'enviado' | 'entregue';
 export type SaleChannel = 'Mercado Livre' | 'Shopee' | 'Direto' | 'Instagram';
 export type ExpenseCategory = 'filamento' | 'energia' | 'manutenção' | 'equipamentos' | 'marketing' | 'outros';
+export type ShippingPaidBy = 'cliente' | 'vendedor' | 'isento';
 
 export interface Filament {
   id: string;
@@ -21,7 +22,7 @@ export interface Product {
   category?: string;
   weightGrams: number;
   printTimeMinutes: number;
-  filamentId: string; // Agora vinculado ao ID do filamento
+  filamentId: string;
   salePrice: number;
   additionalCost?: number;
   defaultChannel?: SaleChannel;
@@ -37,6 +38,8 @@ export interface Sale {
   status: SaleStatus;
   customPrice?: number;
   printerId?: string;
+  shippingCost?: number;
+  shippingPaidBy: ShippingPaidBy;
 }
 
 export interface Expense {

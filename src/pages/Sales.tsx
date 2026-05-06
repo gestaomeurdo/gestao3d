@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { useApp, Sale, SaleChannel, SaleStatus } from '@/context/AppContext';
+import { useApp, Sale, SaleChannel, SaleStatus, ShippingPaidBy } from '@/context/AppContext';
 import { 
   Plus, Search, ShoppingBag, Calendar, 
   TrendingUp, ArrowUpRight, Filter, 
   CheckCircle2, Clock, Package, ExternalLink,
   AlertCircle, DollarSign, CreditCard, Store,
-  Printer as PrinterIcon
+  Printer as PrinterIcon, Truck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,7 @@ import {
   TableHead, 
   TableHeader, 
   TableRow 
-} from '@/components/ui/table';
+} from '@/table';
 import { 
   Dialog, 
   DialogContent, 
@@ -46,7 +46,9 @@ const Sales = () => {
     quantity: 1,
     channel: 'Direto',
     status: 'pago',
-    printerId: printers[0]?.id || ''
+    printerId: printers[0]?.id || '',
+    shippingCost: 0,
+    shippingPaidBy: 'cliente'
   });
 
   // --- ESTATÍSTICAS DE VENDAS ---
@@ -66,8 +68,10 @@ const Sales = () => {
         const price = s.customPrice || p.salePrice;
         const cost = calculateProductCost(p);
         const fee = (settings.channelFees[s.channel] / 100) * price;
+        const shippingImpact = s.shippingPaidBy === 'vendedor' ? (s.shippingCost || 0) : 0;
+        
         revenue += price * s.quantity;
-        profit += (price - cost - fee) * s.quantity;
+        profit += (price - cost - fee) * s.quantity - shippingImpact;
       }
     });
 
@@ -84,7 +88,9 @@ const Sales = () => {
     const totalRevenue = unitPrice * newSale.quantity;
     const totalCost = calculateProductCost(selectedProduct) * newSale.quantity;
     const fee = (settings.channelFees[newSale.channel] / 100) * totalRevenue;
-    return totalRevenue - totalCost - fee;
+    const shippingImpact = newSale.shippingPaidBy === 'vendedor' ? (newSale.shippingCost || 0) : 0;
+    
+    return totalRevenue - totalCost - fee - shippingImpact;
   }, [selectedProduct, newSale, settings, calculateProductCost]);
 
   const handleAddSale = () => {
@@ -97,14 +103,15 @@ const Sales = () => {
       quantity: 1, 
       channel: 'Direto', 
       status: 'pago',
-      printerId: printers[0]?.id || ''
+      printerId: printers[0]?.id || '',
+      shippingCost: 0,
+      shippingPaidBy: 'cliente'
     });
     showSuccess('Venda registrada com sucesso!');
   };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* HEADER E STATS */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-4xl font-bold tracking-tight text-slate-900">Histórico de Vendas</h1>
@@ -117,7 +124,7 @@ const Sales = () => {
               <Plus size={20} /> Registrar Venda
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-white border-none sm:max-w-[500px] rounded-3xl p-8">
+          <DialogContent className="bg-white border-none sm:max-w-[550px] rounded-3xl p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold">Nova Venda</DialogTitle>
               <p className="text-slate-500 text-sm">Registre os detalhes para calcular o lucro desta operação.</p>
@@ -192,15 +199,51 @@ const Sales = () => {
                 </div>
               </div>
 
+              {/* SEÇÃO DE FRETE */}
+              <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                <h4 className="text-xs font-bold uppercase text-slate-400 flex items-center gap-2">
+                  <Truck size={14} /> Logística e Frete
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label className="text-[10px] font-bold uppercase text-slate-400">Quem pagou?</Label>
+                    <Select value={newSale.shippingPaidBy} onValueChange={(v: ShippingPaidBy) => setNewSale({...newSale, shippingPaidBy: v})}>
+                      <SelectTrigger className="h-10 rounded-lg border-slate-200 bg-white"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cliente">Cliente</SelectItem>
+                        <SelectItem value="vendedor">Vendedor (Eu)</SelectItem>
+                        <SelectItem value="isento">Isento / Retirada</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label className="text-[10px] font-bold uppercase text-slate-400">Valor do Frete</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">{settings.currency}</span>
+                      <Input 
+                        type="number" step="0.01"
+                        className="h-10 pl-8 rounded-lg border-slate-200 bg-white" 
+                        value={newSale.shippingCost || ''}
+                        onChange={e => setNewSale({...newSale, shippingCost: Number(e.target.value)})}
+                        disabled={newSale.shippingPaidBy === 'isento'}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {selectedProduct && (
                 <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Lucro Líquido Desta Venda</p>
+                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Lucro Líquido Real</p>
                     <p className="text-3xl font-black text-emerald-600">{settings.currency} {currentSaleProfit.toFixed(2)}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Taxas</p>
-                    <p className="text-sm font-bold text-rose-500">-{settings.currency} {((settings.channelFees[newSale.channel] / 100) * (newSale.customPrice || selectedProduct.salePrice) * newSale.quantity).toFixed(2)}</p>
+                  <div className="text-right space-y-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Deduções</p>
+                    <p className="text-[10px] font-bold text-rose-500">Taxas: -{settings.currency} {((settings.channelFees[newSale.channel] / 100) * (newSale.customPrice || selectedProduct.salePrice) * newSale.quantity).toFixed(2)}</p>
+                    {newSale.shippingPaidBy === 'vendedor' && (
+                      <p className="text-[10px] font-bold text-rose-500">Frete: -{settings.currency} {(newSale.shippingCost || 0).toFixed(2)}</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -271,7 +314,7 @@ const Sales = () => {
               <TableRow className="border-slate-100 hover:bg-transparent">
                 <TableHead className="text-[10px] font-bold uppercase text-slate-400 px-6">Data</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase text-slate-400">Produto</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase text-slate-400">Canal</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase text-slate-400">Canal / Frete</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase text-slate-400">Valor Total</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase text-slate-400">Lucro Líquido</TableHead>
                 <TableHead className="text-[10px] font-bold uppercase text-slate-400 text-right px-6">Ações</TableHead>
@@ -299,7 +342,8 @@ const Sales = () => {
                     const totalPrice = unitPrice * sale.quantity;
                     const cost = calculateProductCost(product) * sale.quantity;
                     const fee = (settings.channelFees[sale.channel] / 100) * totalPrice;
-                    const netProfit = totalPrice - cost - fee;
+                    const shippingImpact = sale.shippingPaidBy === 'vendedor' ? (sale.shippingCost || 0) : 0;
+                    const netProfit = totalPrice - cost - fee - shippingImpact;
 
                     return (
                       <TableRow key={sale.id} className="border-slate-100 hover:bg-slate-50/50 transition-colors">
@@ -313,9 +357,14 @@ const Sales = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="rounded-lg border-slate-200 text-[10px] font-bold uppercase text-slate-500">
-                            {sale.channel}
-                          </Badge>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant="outline" className="w-fit rounded-lg border-slate-200 text-[10px] font-bold uppercase text-slate-500">
+                              {sale.channel}
+                            </Badge>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                              <Truck size={10} /> {sale.shippingPaidBy === 'vendedor' ? 'Frete Grátis' : sale.shippingPaidBy === 'cliente' ? 'Frete Pago' : 'Retirada'}
+                            </span>
+                          </div>
                         </TableCell>
                         <TableCell className="font-bold text-slate-900">
                           {settings.currency} {totalPrice.toFixed(2)}
