@@ -6,7 +6,8 @@ import {
   Plus, Receipt, Trash2, Calendar, Tag, DollarSign, 
   TrendingUp, ArrowDownRight, Info, AlertCircle, 
   PieChart, Wallet, Repeat, Search, ArrowRightLeft,
-  TrendingDown, BarChart3, Package, AlertTriangle
+  TrendingDown, BarChart3, Package, AlertTriangle,
+  Zap, Layers
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +31,7 @@ import { format, startOfMonth, isWithinInterval, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const Finance = () => {
-  const { expenses, addExpense, deleteExpense, settings, sales, products, calculateProductCost } = useApp();
+  const { expenses, addExpense, deleteExpense, settings, sales, products, filaments, calculateProductCost } = useApp();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -55,11 +56,12 @@ const Finance = () => {
     let fees = 0;
     let shipping = 0;
     
-    const productBreakdown: Record<string, { name: string, unitCost: number, totalCost: number, qty: number }> = {};
+    const productBreakdown: Record<string, { name: string, unitCost: number, totalCost: number, qty: number, filamentName: string, filamentPrice: number }> = {};
 
     monthSales.forEach(s => {
       const p = products.find(prod => prod.id === s.productId);
       if (p) {
+        const filament = filaments.find(f => f.id === p.filamentId);
         const unitCost = calculateProductCost(p);
         const totalUnitCost = unitCost * s.quantity;
         
@@ -70,7 +72,14 @@ const Finance = () => {
         if (s.shippingPaidBy === 'vendedor') shipping += (s.shippingCost || 0);
 
         if (!productBreakdown[p.id]) {
-          productBreakdown[p.id] = { name: p.name, unitCost, totalCost: 0, qty: 0 };
+          productBreakdown[p.id] = { 
+            name: p.name, 
+            unitCost, 
+            totalCost: 0, 
+            qty: 0, 
+            filamentName: filament?.name || 'N/A',
+            filamentPrice: filament?.pricePerKg || 0
+          };
         }
         productBreakdown[p.id].totalCost += totalUnitCost;
         productBreakdown[p.id].qty += s.quantity;
@@ -89,7 +98,7 @@ const Finance = () => {
       netProfit,
       productBreakdown: Object.values(productBreakdown).sort((a, b) => b.totalCost - a.totalCost)
     };
-  }, [sales, expenses, products, calculateProductCost, settings]);
+  }, [sales, expenses, products, filaments, calculateProductCost, settings]);
 
   const handleAddExpense = () => {
     if (!newExpense.description || newExpense.amount <= 0) return;
@@ -206,36 +215,45 @@ const Finance = () => {
                   </div>
                   
                   <div className="p-6 space-y-6">
-                    {/* CUSTOS DE PRODUÇÃO COM AUDITORIA */}
+                    {/* CUSTOS DE PRODUÇÃO COM AUDITORIA EXTREMA */}
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-bold text-muted-foreground">(-) Custos de Produção (Filamento/Energia)</span>
                         <span className="font-black text-rose-500">-{settings.currency} {dre.productionCost.toLocaleString()}</span>
                       </div>
                       
-                      {dre.productionCost > 1000 && (
-                        <div className="bg-rose-500/5 border border-rose-500/20 rounded-2xl p-4 space-y-3">
-                          <div className="flex items-center gap-2 text-rose-600 text-[10px] font-black uppercase tracking-wider">
-                            <AlertTriangle size={14} /> Auditoria de Custos (Por que está alto?)
+                      <div className="bg-slate-900 rounded-2xl p-5 space-y-4 border border-white/10">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                          <div className="flex items-center gap-2 text-orange-400 text-[10px] font-black uppercase tracking-wider">
+                            <AlertTriangle size={14} /> Auditoria de Variáveis
                           </div>
-                          <div className="space-y-2">
-                            {dre.productBreakdown.map((item, idx) => (
-                              <div key={idx} className="flex items-center justify-between text-xs border-b border-rose-500/10 pb-2 last:border-0">
-                                <div className="flex flex-col">
-                                  <span className="font-bold text-slate-700">{item.qty}x {item.name}</span>
-                                  <span className="text-[10px] text-muted-foreground">Custo Unitário: {settings.currency} {item.unitCost.toFixed(2)}</span>
-                                </div>
-                                <span className={cn("font-black", item.totalCost > 500 ? "text-rose-600" : "text-slate-500")}>
-                                  {settings.currency} {item.totalCost.toLocaleString()}
-                                </span>
-                              </div>
-                            ))}
+                          <div className="flex gap-4">
+                            <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                              <Zap size={10} className="text-yellow-500" /> Energia: <span className="text-white font-bold">{settings.currency} {settings.energyCostPerHour}/h</span>
+                            </div>
                           </div>
-                          <p className="text-[9px] text-muted-foreground italic">
-                            Dica: Se um custo unitário estiver absurdo, verifique o Peso (g) ou Tempo (min) no cadastro do produto.
-                          </p>
                         </div>
-                      )}
+
+                        <div className="space-y-3">
+                          {dre.productBreakdown.map((item, idx) => (
+                            <div key={idx} className="space-y-1 border-b border-white/5 pb-2 last:border-0">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-white">{item.qty}x {item.name}</span>
+                                <span className="text-sm font-black text-rose-400">{settings.currency} {item.totalCost.toLocaleString()}</span>
+                              </div>
+                              <div className="flex gap-3 text-[9px] text-slate-500 font-bold uppercase">
+                                <span className="flex items-center gap-1"><Layers size={8} /> {item.filamentName}: {settings.currency} {item.filamentPrice}/kg</span>
+                                <span>•</span>
+                                <span>Custo Unitário: {settings.currency} {item.unitCost.toFixed(2)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        <p className="text-[9px] text-slate-500 italic leading-relaxed">
+                          Se o valor acima está em milhares, verifique se o **Preço/Kg** do filamento ou o **Custo de Energia** nas configurações não está com zeros a mais.
+                        </p>
+                      </div>
                     </div>
 
                     <div className="flex justify-between text-sm">
