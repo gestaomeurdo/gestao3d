@@ -52,7 +52,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { theme, setTheme } = useTheme();
   
   const googleAvatar = session?.user?.user_metadata?.avatar_url;
-  const userName = session?.user?.user_metadata?.full_name || settings?.userName || "Usuário";
+  const profileAvatar = settings?.avatarUrl;
+  const userName = settings?.userName || session?.user?.user_metadata?.full_name || "Usuário";
   const systemName = settings?.systemName || "PrintSaaS";
   const userInitials = userName.substring(0, 2).toUpperCase();
 
@@ -98,7 +99,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       <div className="mt-auto pt-6 border-t border-slate-100">
         <div className="flex items-center gap-3 px-2">
           <Avatar className="h-10 w-10 border-2 border-orange-500/20 shadow-sm">
-            <AvatarImage src={googleAvatar} />
+            <AvatarImage src={profileAvatar || googleAvatar} />
             <AvatarFallback className="bg-slate-100 text-slate-600 font-bold">{userInitials}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
@@ -157,7 +158,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                       <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Perfil</p>
                     </div>
                     <Avatar className="h-10 w-10 border-2 border-orange-500/20 shadow-sm">
-                      <AvatarImage src={googleAvatar} />
+                      <AvatarImage src={profileAvatar || googleAvatar} />
                       <AvatarFallback className="bg-slate-100 text-slate-600 font-bold">{userInitials}</AvatarFallback>
                     </Avatar>
                     <ChevronDown size={14} className="text-slate-400" />
