@@ -94,6 +94,7 @@ interface AppContextType {
   updateSettings: (settings: Partial<Settings>) => void;
   calculateProductCost: (product: Product) => number;
   importAllData: (data: any) => void;
+  clearAllData: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -151,16 +152,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const calculateProductCost = (product: Product) => {
     const filament = filaments.find(f => f.id === product.filamentId);
-    const filamentPrice = filament ? Number(filament.pricePerKg) : 120;
+    const filamentPrice = filament ? Number(filament.pricePerKg) : 0;
     const weight = Number(product.weightGrams) || 0;
     const time = Number(product.printTimeMinutes) || 0;
     const energy = Number(settings.energyCostPerHour) || 0;
     const extra = Number(product.additionalCost) || 0;
 
+    // Custo do filamento: (gramas / 1000) * preço por kg
     const filamentCost = (weight / 1000) * filamentPrice;
+    // Custo de energia: (minutos / 60) * custo por hora
     const energyCost = (time / 60) * energy;
     
-    return filamentCost + energyCost + extra;
+    const total = filamentCost + energyCost + extra;
+    return isNaN(total) ? 0 : total;
   };
 
   const addFilament = (filament: Omit<Filament, 'id'>) => setFilaments([...filaments, { ...filament, id: Math.random().toString(36).substr(2, 9) }]);
@@ -185,6 +189,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateSettings = (newSettings: Partial<Settings>) => setSettings(prev => ({ ...prev, ...newSettings }));
 
+  const clearAllData = () => {
+    setProducts([]);
+    setSales([]);
+    setExpenses([]);
+    setFilaments([{ id: 'f1', name: 'PLA Básico', type: 'PLA', pricePerKg: 120, stockGrams: 1000 }]);
+    showSuccess('Todos os dados foram limpos!');
+  };
+
   const importAllData = (data: any) => {
     if (data.filaments) setFilaments(data.filaments);
     if (data.products) setProducts(data.products);
@@ -202,7 +214,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addExpense, updateExpense, deleteExpense,
       addPrinter, updatePrinter, deletePrinter,
       addFilament, updateFilament, deleteFilament, updateSettings,
-      calculateProductCost, importAllData
+      calculateProductCost, importAllData, clearAllData
     }}>
       {children}
     </AppContext.Provider>

@@ -42,7 +42,6 @@ const Finance = () => {
     isRecurring: false
   });
 
-  // --- CÁLCULOS DO DRE (Demonstrativo de Resultados) ---
   const dre = useMemo(() => {
     const now = new Date();
     const start = startOfMonth(now);
@@ -169,7 +168,6 @@ const Finance = () => {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-8">
-          {/* RESUMO DRE */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <Card className="lg:col-span-2 glass-card border-none shadow-lg overflow-hidden">
               <CardHeader className="bg-secondary/30 border-b border-border/50">

@@ -5,7 +5,7 @@ import { useApp, SaleChannel, FilamentType } from '@/context/AppContext';
 import { 
   Save, Zap, CreditCard, User, Monitor, Layers, 
   Plus, Trash2, Download, Upload, ShieldCheck,
-  Database, Scale, Target, Layout
+  Database, Scale, Target, Layout, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,12 +14,23 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { showSuccess, showError } from '@/utils/toast';
 import { cn } from '@/lib/utils';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Settings = () => {
   const { 
     settings, updateSettings, filaments, addFilament, 
     updateFilament, deleteFilament, products, sales, 
-    expenses, printers, importAllData 
+    expenses, printers, importAllData, clearAllData 
   } = useApp();
   
   const [newFilament, setNewFilament] = useState({ name: '', type: 'PLA' as FilamentType, pricePerKg: 0, stockGrams: 1000 });
@@ -274,6 +285,30 @@ const Settings = () => {
                   </div>
                 </Button>
               </div>
+              
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-start gap-3 h-12 text-rose-500 hover:bg-rose-500/10">
+                    <AlertTriangle size={18} />
+                    <div className="text-left">
+                      <p className="text-sm font-bold">Limpar Todos os Dados</p>
+                      <p className="text-[10px] text-rose-400">Cuidado! Isso apagará produtos, vendas e gastos.</p>
+                    </div>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="rounded-3xl">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. Isso apagará permanentemente todos os seus produtos, vendas, gastos e estoque.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={clearAllData} className="bg-rose-500 hover:bg-rose-600 rounded-xl">Sim, limpar tudo</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </CardContent>
         </Card>
