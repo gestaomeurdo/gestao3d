@@ -7,7 +7,7 @@ import {
   TrendingUp, ArrowUpRight, Filter, 
   CheckCircle2, Clock, Package, ExternalLink,
   AlertCircle, DollarSign, CreditCard, Store,
-  Printer as PrinterIcon, Truck
+  Printer as PrinterIcon, Truck, Trash2, Edit2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,17 @@ import {
   DialogTrigger,
   DialogFooter
 } from '@/components/ui/dialog';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -36,11 +47,12 @@ import { format, startOfMonth, isWithinInterval, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const Sales = () => {
-  const { sales, products, printers, addSale, settings, calculateProductCost } = useApp();
+  const { sales, products, printers, addSale, updateSale, deleteSale, settings, calculateProductCost } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [newSale, setNewSale] = useState<Omit<Sale, 'id'>>({
+  const [formData, setFormData] = useState<Omit<Sale, 'id'>>({
     date: new Date().toISOString(),
     productId: '',
     quantity: 1,
@@ -79,25 +91,23 @@ const Sales = () => {
   }, [sales, products, settings, calculateProductCost]);
 
   const selectedProduct = useMemo(() => 
-    products.find(p => p.id === newSale.productId), 
-  [newSale.productId, products]);
+    products.find(p => p.id === formData.productId), 
+  [formData.productId, products]);
 
   const currentSaleProfit = useMemo(() => {
     if (!selectedProduct) return 0;
-    const unitPrice = newSale.customPrice || selectedProduct.salePrice;
-    const totalRevenue = unitPrice * newSale.quantity;
-    const totalCost = calculateProductCost(selectedProduct) * newSale.quantity;
-    const fee = (settings.channelFees[newSale.channel] / 100) * totalRevenue;
-    const shippingImpact = newSale.shippingPaidBy === 'vendedor' ? (newSale.shippingCost || 0) : 0;
+    const unitPrice = formData.customPrice || selectedProduct.salePrice;
+    const totalRevenue = unitPrice * formData.quantity;
+    const totalCost = calculateProductCost(selectedProduct) * formData.quantity;
+    const fee = (settings.channelFees[formData.channel] / 100) * totalRevenue;
+    const shippingImpact = formData.shippingPaidBy === 'vendedor' ? (formData.shippingCost || 0) : 0;
     
     return totalRevenue - totalCost - fee - shippingImpact;
-  }, [selectedProduct, newSale, settings, calculateProductCost]);
+  }, [selectedProduct, formData, settings, calculateProductCost]);
 
-  const handleAddSale = () => {
-    if (!newSale.productId) return;
-    addSale(newSale);
-    setIsAddDialogOpen(false);
-    setNewSale({ 
+  const handleOpenAdd = () => {
+    setEditingId(null);
+    setFormData({ 
       date: new Date().toISOString(), 
       productId: '', 
       quantity: 1, 
@@ -107,7 +117,42 @@ const Sales = () => {
       shippingCost: 0,
       shippingPaidBy: 'cliente'
     });
-    showSuccess('Venda registrada com sucesso!');
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenEdit = (sale: Sale) => {
+    setEditingId(sale.id);
+    setFormData({
+      date: sale.date,
+      productId: sale.productId,
+      quantity: sale.quantity,
+      channel: sale.channel,
+      status: sale.status,
+      customPrice: sale.customPrice,
+      printerId: sale.printerId || printers[0]?.id || '',
+      shippingCost: sale.shippingCost || 0,
+      shippingPaidBy: sale.shippingPaidBy
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSaveSale = () => {
+    if (!formData.productId) return;
+    
+    if (editingId) {
+      updateSale(editingId, formData);
+      showSuccess('Venda atualizada com sucesso!');
+    } else {
+      addSale(formData);
+      showSuccess('Venda registrada com sucesso!');
+    }
+    
+    setIsDialogOpen(false);
+  };
+
+  const handleDeleteSale = (id: string) => {
+    deleteSale(id);
+    showSuccess('Venda removida do histórico.');
   };
 
   return (
@@ -118,15 +163,19 @@ const Sales = () => {
           <p className="text-slate-500 mt-2">Acompanhe o crescimento do seu negócio e seu lucro real.</p>
         </div>
         
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white h-12 px-8 rounded-2xl gap-2 shadow-lg shadow-blue-600/20 transition-all hover:scale-105">
-              <Plus size={20} /> Registrar Venda
-            </Button>
-          </DialogTrigger>
+        <Button 
+          onClick={handleOpenAdd}
+          className="bg-blue-600 hover:bg-blue-700 text-white h-12 px-8 rounded-2xl gap-2 shadow-lg shadow-blue-600/20 transition-all hover:scale-105"
+        >
+          <Plus size={20} /> Registrar Venda
+        </Button>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="bg-white border-none sm:max-w-[550px] rounded-3xl p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">Nova Venda</DialogTitle>
+              <DialogTitle className="text-2xl font-bold">
+                {editingId ? 'Editar Venda' : 'Nova Venda'}
+              </DialogTitle>
               <p className="text-slate-500 text-sm">Registre os detalhes para calcular o lucro desta operação.</p>
             </DialogHeader>
             
@@ -134,10 +183,10 @@ const Sales = () => {
               <div className="grid gap-2">
                 <Label className="text-xs font-bold uppercase text-slate-400">Produto Vendido</Label>
                 <Select 
-                  value={newSale.productId} 
+                  value={formData.productId} 
                   onValueChange={(v) => {
                     const prod = products.find(p => p.id === v);
-                    setNewSale({...newSale, productId: v, channel: prod?.defaultChannel || 'Direto'});
+                    setFormData({...formData, productId: v, channel: prod?.defaultChannel || 'Direto'});
                   }}
                 >
                   <SelectTrigger className="h-12 rounded-xl border-slate-200"><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
@@ -154,13 +203,13 @@ const Sales = () => {
                   <Label className="text-xs font-bold uppercase text-slate-400">Quantidade</Label>
                   <Input 
                     type="number" className="h-12 rounded-xl border-slate-200" 
-                    value={newSale.quantity || ''}
-                    onChange={e => setNewSale({...newSale, quantity: Number(e.target.value)})}
+                    value={formData.quantity || ''}
+                    onChange={e => setFormData({...formData, quantity: Number(e.target.value)})}
                   />
                 </div>
                 <div className="grid gap-2">
                   <Label className="text-xs font-bold uppercase text-slate-400">Canal</Label>
-                  <Select value={newSale.channel} onValueChange={(v: SaleChannel) => setNewSale({...newSale, channel: v})}>
+                  <Select value={formData.channel} onValueChange={(v: SaleChannel) => setFormData({...formData, channel: v})}>
                     <SelectTrigger className="h-12 rounded-xl border-slate-200"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Mercado Livre">Mercado Livre</SelectItem>
@@ -181,14 +230,14 @@ const Sales = () => {
                       type="number" step="0.01" inputMode="decimal"
                       placeholder={selectedProduct ? selectedProduct.salePrice.toString() : "0.00"}
                       className="h-12 pl-12 rounded-xl border-slate-200 font-bold" 
-                      value={newSale.customPrice || ''}
-                      onChange={e => setNewSale({...newSale, customPrice: e.target.value ? Number(e.target.value) : undefined})}
+                      value={formData.customPrice || ''}
+                      onChange={e => setFormData({...formData, customPrice: e.target.value ? Number(e.target.value) : undefined})}
                     />
                   </div>
                 </div>
                 <div className="grid gap-2">
                   <Label className="text-xs font-bold uppercase text-slate-400">Impressora Usada</Label>
-                  <Select value={newSale.printerId} onValueChange={(v) => setNewSale({...newSale, printerId: v})}>
+                  <Select value={formData.printerId} onValueChange={(v) => setFormData({...formData, printerId: v})}>
                     <SelectTrigger className="h-12 rounded-xl border-slate-200"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {printers.map(p => (
@@ -207,7 +256,7 @@ const Sales = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label className="text-[10px] font-bold uppercase text-slate-400">Quem pagou?</Label>
-                    <Select value={newSale.shippingPaidBy} onValueChange={(v: ShippingPaidBy) => setNewSale({...newSale, shippingPaidBy: v})}>
+                    <Select value={formData.shippingPaidBy} onValueChange={(v: ShippingPaidBy) => setFormData({...formData, shippingPaidBy: v})}>
                       <SelectTrigger className="h-10 rounded-lg border-slate-200 bg-white"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="cliente">Cliente</SelectItem>
@@ -223,9 +272,9 @@ const Sales = () => {
                       <Input 
                         type="number" step="0.01"
                         className="h-10 pl-8 rounded-lg border-slate-200 bg-white" 
-                        value={newSale.shippingCost || ''}
-                        onChange={e => setNewSale({...newSale, shippingCost: Number(e.target.value)})}
-                        disabled={newSale.shippingPaidBy === 'isento'}
+                        value={formData.shippingCost || ''}
+                        onChange={e => setFormData({...formData, shippingCost: Number(e.target.value)})}
+                        disabled={formData.shippingPaidBy === 'isento'}
                       />
                     </div>
                   </div>
@@ -240,9 +289,9 @@ const Sales = () => {
                   </div>
                   <div className="text-right space-y-1">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Deduções</p>
-                    <p className="text-[10px] font-bold text-rose-500">Taxas: -{settings.currency} {((settings.channelFees[newSale.channel] / 100) * (newSale.customPrice || selectedProduct.salePrice) * newSale.quantity).toFixed(2)}</p>
-                    {newSale.shippingPaidBy === 'vendedor' && (
-                      <p className="text-[10px] font-bold text-rose-500">Frete: -{settings.currency} {(newSale.shippingCost || 0).toFixed(2)}</p>
+                    <p className="text-[10px] font-bold text-rose-500">Taxas: -{settings.currency} {((settings.channelFees[formData.channel] / 100) * (formData.customPrice || selectedProduct.salePrice) * formData.quantity).toFixed(2)}</p>
+                    {formData.shippingPaidBy === 'vendedor' && (
+                      <p className="text-[10px] font-bold text-rose-500">Frete: -{settings.currency} {(formData.shippingCost || 0).toFixed(2)}</p>
                     )}
                   </div>
                 </div>
@@ -250,8 +299,10 @@ const Sales = () => {
             </div>
 
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setIsAddDialogOpen(false)} className="rounded-xl">Cancelar</Button>
-              <Button className="bg-blue-600 text-white px-8 rounded-xl h-12" onClick={handleAddSale}>Confirmar Venda</Button>
+              <Button variant="ghost" onClick={() => setIsDialogOpen(false)} className="rounded-xl">Cancelar</Button>
+              <Button className="bg-blue-600 text-white px-8 rounded-xl h-12" onClick={handleSaveSale}>
+                {editingId ? 'Salvar Alterações' : 'Confirmar Venda'}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -378,9 +429,43 @@ const Sales = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-right px-6">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-slate-900">
-                            <ExternalLink size={14} />
-                          </Button>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button 
+                              variant="ghost" size="icon" 
+                              className="h-8 w-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                              onClick={() => handleOpenEdit(sale)}
+                            >
+                              <Edit2 size={14} />
+                            </Button>
+                            
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button 
+                                  variant="ghost" size="icon" 
+                                  className="h-8 w-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                                >
+                                  <Trash2 size={14} />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="rounded-3xl">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Excluir Venda?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta ação removerá permanentemente o registro desta venda do seu histórico e afetará seus cálculos de lucro.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleDeleteSale(sale.id)}
+                                    className="bg-rose-500 hover:bg-rose-600 rounded-xl"
+                                  >
+                                    Sim, excluir
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
