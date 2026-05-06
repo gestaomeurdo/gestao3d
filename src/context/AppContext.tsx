@@ -237,7 +237,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { data } = await supabase.from('filaments').insert([{
       ...f, price_per_kg: pricePerKg, user_id: session.user.id
     }]).select().single();
-    if (data) setFilaments([...filaments, { ...f, pricePerKg, id: data.id }]);
+    if (data) fetchData(session.user.id);
   };
 
   const updateFilament = async (id: string, updated: Partial<Filament>) => {
@@ -270,7 +270,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       name: p.name, category: p.category, weight_grams: p.weightGrams,
       print_time_minutes: p.printTimeMinutes, filament_id: p.filamentId,
       sale_price: p.salePrice, additional_cost: p.additionalCost,
-      default_channel: p.default_channel, image_url: p.imageUrl
+      default_channel: p.defaultChannel, image_url: p.imageUrl
     }).eq('id', id);
     if (!error && session) fetchData(session.user.id);
   };
@@ -353,11 +353,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateSettings = async (s: Partial<Settings>) => {
     if (!session) return;
-    const { error } = await supabase.from('profiles').update({
-      first_name: s.userName, system_name: s.systemName,
-      energy_cost_per_hour: s.energyCostPerHour, channel_fees: s.channelFees,
-      currency: s.currency, monthly_profit_goal: s.monthlyProfitGoal
-    }).eq('id', session.user.id);
+    const { error } = await supabase.from('profiles').upsert({
+      id: session.user.id,
+      first_name: s.userName, 
+      system_name: s.systemName,
+      energy_cost_per_hour: s.energyCostPerHour, 
+      channel_fees: s.channelFees,
+      currency: s.currency, 
+      monthly_profit_goal: s.monthlyProfitGoal,
+      updated_at: new Date().toISOString()
+    });
     if (!error) fetchData(session.user.id);
   };
 
