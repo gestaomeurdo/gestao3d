@@ -16,12 +16,21 @@ import {
   Moon,
   Sun,
   ChevronDown,
-  Wallet
+  Wallet,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const navItems = [
   { group: "Geral", items: [
@@ -40,7 +49,7 @@ const navItems = [
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const { settings } = useApp();
+  const { settings, signOut } = useApp();
   const { theme, setTheme } = useTheme();
   
   const userName = settings?.userName || "Usuário";
@@ -140,17 +149,30 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 <Bell size={20} />
               </Button>
               <div className="h-8 w-[1px] bg-border mx-2" />
-              <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
-                <div className="text-right hidden sm:block">
-                  <p className="text-sm font-bold leading-none">{userName}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Painel de Controle</p>
-                </div>
-                <Avatar className="h-9 w-9 border-2 border-primary/20">
-                  <AvatarImage src="https://github.com/shadcn.png" />
-                  <AvatarFallback>{userInitials}</AvatarFallback>
-                </Avatar>
-                <ChevronDown size={14} className="text-muted-foreground" />
-              </div>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
+                    <div className="text-right hidden sm:block">
+                      <p className="text-sm font-bold leading-none">{userName}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">Painel de Controle</p>
+                    </div>
+                    <Avatar className="h-9 w-9 border-2 border-primary/20">
+                      <AvatarImage src="https://github.com/shadcn.png" />
+                      <AvatarFallback>{userInitials}</AvatarFallback>
+                    </Avatar>
+                    <ChevronDown size={14} className="text-muted-foreground" />
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 rounded-2xl">
+                  <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => signOut()} className="text-rose-500 focus:text-rose-500 cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sair do Sistema</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>

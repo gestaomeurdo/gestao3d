@@ -1,6 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from "@/integrations/supabase/client";
+import { Session } from '@supabase/supabase-js';
 
 export type FilamentType = 'PLA' | 'PETG' | 'ABS' | 'Resina' | 'Outro';
 export type SaleStatus = 'pago' | 'enviado' | 'entregue';
@@ -12,10 +14,10 @@ export interface Filament {
   id: string;
   name: string;
   type: FilamentType;
-  rollPrice: number; // Preço pago pelo rolo
-  rollWeightGrams: number; // Peso total do rolo (ex: 1000g)
-  pricePerKg: number; // Calculado automaticamente
-  stockGrams: number; // O que resta no estoque
+  rollPrice: number;
+  rollWeightGrams: number;
+  pricePerKg: number;
+  stockGrams: number;
   color?: string;
 }
 
@@ -78,79 +80,139 @@ interface AppContextType {
   printers: Printer[];
   filaments: Filament[];
   settings: Settings;
-  addProduct: (product: Omit<Product, 'id'>) => void;
-  updateProduct: (id: string, product: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
-  addSale: (sale: Omit<Sale, 'id'>) => void;
-  updateSale: (id: string, sale: Partial<Sale>) => void;
-  deleteSale: (id: string) => void;
-  addExpense: (expense: Omit<Expense, 'id'>) => void;
-  updateExpense: (id: string, expense: Partial<Expense>) => void;
-  deleteExpense: (id: string) => void;
-  addPrinter: (printer: Omit<Printer, 'id'>) => void;
-  updatePrinter: (id: string, printer: Partial<Printer>) => void;
-  deletePrinter: (id: string) => void;
-  addFilament: (filament: Omit<Filament, 'id' | 'pricePerKg'>) => void;
-  updateFilament: (id: string, filament: Partial<Filament>) => void;
-  deleteFilament: (id: string) => void;
-  updateSettings: (settings: Partial<Settings>) => void;
+  session: Session | null;
+  loading: boolean;
+  addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
+  updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  addSale: (sale: Omit<Sale, 'id'>) => Promise<void>;
+  updateSale: (id: string, sale: Partial<Sale>) => Promise<void>;
+  deleteSale: (id: string) => Promise<void>;
+  addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
+  updateExpense: (id: string, expense: Partial<Expense>) => Promise<void>;
+  deleteExpense: (id: string) => Promise<void>;
+  addPrinter: (printer: Omit<Printer, 'id'>) => Promise<void>;
+  updatePrinter: (id: string, printer: Partial<Printer>) => Promise<void>;
+  deletePrinter: (id: string) => Promise<void>;
+  addFilament: (filament: Omit<Filament, 'id' | 'pricePerKg'>) => Promise<void>;
+  updateFilament: (id: string, filament: Partial<Filament>) => Promise<void>;
+  deleteFilament: (id: string) => Promise<void>;
+  updateSettings: (settings: Partial<Settings>) => Promise<void>;
   calculateProductCost: (product: Product) => number;
-  importAllData: (data: any) => void;
-  clearAllData: () => void;
+  signOut: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [filaments, setFilaments] = useState<Filament[]>(() => {
-    const saved = localStorage.getItem('printsaas_filaments');
-    return saved ? JSON.parse(saved) : [
-      { id: 'f1', name: 'PLA Básico', type: 'PLA', rollPrice: 120, rollWeightGrams: 1000, pricePerKg: 120, stockGrams: 1000 }
-    ];
-  });
-
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('printsaas_products');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [sales, setSales] = useState<Sale[]>(() => {
-    const saved = localStorage.getItem('printsaas_sales');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [expenses, setExpenses] = useState<Expense[]>(() => {
-    const saved = localStorage.getItem('printsaas_expenses');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [printers, setPrinters] = useState<Printer[]>(() => {
-    const saved = localStorage.getItem('printsaas_printers');
-    return saved ? JSON.parse(saved) : [
-      { id: '1', name: 'Bambu Lab A1 Mini', purchasePrice: 2500, purchaseDate: '2024-01-01', status: 'disponível' },
-    ];
-  });
-
-  const [settings, setSettings] = useState<Settings>(() => {
-    const saved = localStorage.getItem('printsaas_settings');
-    return saved ? JSON.parse(saved) : {
-      userName: 'Oliver',
-      systemName: 'PrintSaaS',
-      energyCostPerHour: 0.85,
-      channelFees: { 'Mercado Livre': 16.5, 'Shopee': 14, 'Direto': 0, 'Instagram': 0 },
-      currency: 'R$',
-      monthlyProfitGoal: 5000,
-    };
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [filaments, setFilaments] = useState<Filament[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [printers, setPrinters] = useState<Printer[]>([]);
+  const [settings, setSettings] = useState<Settings>({
+    userName: '',
+    systemName: 'PrintSaaS',
+    energyCostPerHour: 0.85,
+    channelFees: { 'Mercado Livre': 16.5, 'Shopee': 14, 'Direto': 0, 'Instagram': 0 },
+    currency: 'R$',
+    monthlyProfitGoal: 5000,
   });
 
   useEffect(() => {
-    localStorage.setItem('printsaas_filaments', JSON.stringify(filaments));
-    localStorage.setItem('printsaas_products', JSON.stringify(products));
-    localStorage.setItem('printsaas_sales', JSON.stringify(sales));
-    localStorage.setItem('printsaas_expenses', JSON.stringify(expenses));
-    localStorage.setItem('printsaas_printers', JSON.stringify(printers));
-    localStorage.setItem('printsaas_settings', JSON.stringify(settings));
-  }, [filaments, products, sales, expenses, printers, settings]);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) fetchData(session.user.id);
+      else setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) fetchData(session.user.id);
+      else {
+        setFilaments([]);
+        setProducts([]);
+        setSales([]);
+        setExpenses([]);
+        setPrinters([]);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchData = async (userId: string) => {
+    setLoading(true);
+    try {
+      const [
+        { data: prof },
+        { data: fil },
+        { data: prod },
+        { data: sls },
+        { data: exp },
+        { data: prn }
+      ] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', userId).single(),
+        supabase.from('filaments').select('*').eq('user_id', userId),
+        supabase.from('products').select('*').eq('user_id', userId),
+        supabase.from('sales').select('*').eq('user_id', userId),
+        supabase.from('expenses').select('*').eq('user_id', userId),
+        supabase.from('printers').select('*').eq('user_id', userId)
+      ]);
+
+      if (prof) {
+        setSettings({
+          userName: prof.first_name || '',
+          systemName: prof.system_name || 'PrintSaaS',
+          energyCostPerHour: Number(prof.energy_cost_per_hour),
+          channelFees: prof.channel_fees,
+          currency: prof.currency || 'R$',
+          monthlyProfitGoal: Number(prof.monthly_profit_goal),
+        });
+      }
+
+      if (fil) setFilaments(fil.map(f => ({
+        id: f.id, name: f.name, type: f.type as FilamentType,
+        rollPrice: Number(f.roll_price), rollWeightGrams: Number(f.roll_weight_grams),
+        pricePerKg: Number(f.price_per_kg), stockGrams: Number(f.stock_grams), color: f.color
+      })));
+
+      if (prod) setProducts(prod.map(p => ({
+        id: p.id, name: p.name, category: p.category,
+        weightGrams: Number(p.weight_grams), printTimeMinutes: Number(p.print_time_minutes),
+        filamentId: p.filament_id, salePrice: Number(p.sale_price),
+        additionalCost: Number(p.additional_cost), defaultChannel: p.default_channel as SaleChannel,
+        imageUrl: p.image_url
+      })));
+
+      if (sls) setSales(sls.map(s => ({
+        id: s.id, date: s.date, productId: s.product_id,
+        quantity: s.quantity, channel: s.channel as SaleChannel,
+        status: s.status as SaleStatus, customPrice: s.custom_price ? Number(s.custom_price) : undefined,
+        printerId: s.printer_id, shippingCost: Number(s.shipping_cost),
+        shippingPaidBy: s.shipping_paid_by as ShippingPaidBy
+      })));
+
+      if (exp) setExpenses(exp.map(e => ({
+        id: e.id, category: e.category as ExpenseCategory,
+        amount: Number(e.amount), date: e.date, description: e.description,
+        isRecurring: e.is_recurring
+      })));
+
+      if (prn) setPrinters(prn.map(p => ({
+        id: p.id, name: p.name, purchasePrice: Number(p.purchase_price),
+        purchaseDate: p.purchase_date, status: p.status as any
+      })));
+
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const calculateProductCost = (product: Product) => {
     const filament = filaments.find(f => f.id === product.filamentId);
@@ -163,72 +225,152 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const filamentCost = (weight / 1000) * filamentPrice;
     const energyCost = (time / 60) * energy;
     
-    const total = filamentCost + energyCost + extra;
-    return isNaN(total) ? 0 : total;
+    return filamentCost + energyCost + extra;
   };
 
-  const addFilament = (f: Omit<Filament, 'id' | 'pricePerKg'>) => {
+  const addFilament = async (f: Omit<Filament, 'id' | 'pricePerKg'>) => {
+    if (!session) return;
     const pricePerKg = (f.rollPrice / f.rollWeightGrams) * 1000;
-    setFilaments([...filaments, { ...f, pricePerKg, id: Math.random().toString(36).substr(2, 9) }]);
+    const { data, error } = await supabase.from('filaments').insert([{
+      ...f, price_per_kg: pricePerKg, user_id: session.user.id
+    }]).select().single();
+    if (data) setFilaments([...filaments, { ...f, pricePerKg, id: data.id }]);
   };
 
-  const updateFilament = (id: string, updated: Partial<Filament>) => {
-    setFilaments(filaments.map(f => {
-      if (f.id === id) {
-        const newFilament = { ...f, ...updated };
-        newFilament.pricePerKg = (newFilament.rollPrice / newFilament.rollWeightGrams) * 1000;
-        return newFilament;
-      }
-      return f;
-    }));
+  const updateFilament = async (id: string, updated: Partial<Filament>) => {
+    const { error } = await supabase.from('filaments').update({
+      ...updated,
+      price_per_kg: updated.rollPrice && updated.rollWeightGrams ? (updated.rollPrice / updated.rollWeightGrams) * 1000 : undefined
+    }).eq('id', id);
+    if (!error) fetchData(session!.user.id);
   };
 
-  const deleteFilament = (id: string) => setFilaments(filaments.filter(f => f.id !== id));
-
-  const addProduct = (product: Omit<Product, 'id'>) => setProducts([...products, { ...product, id: Math.random().toString(36).substr(2, 9) }]);
-  const updateProduct = (id: string, updated: Partial<Product>) => setProducts(products.map(p => p.id === id ? { ...p, ...updated } : p));
-  const deleteProduct = (id: string) => setProducts(products.filter(p => p.id !== id));
-  
-  const addSale = (sale: Omit<Sale, 'id'>) => setSales([...sales, { ...sale, id: Math.random().toString(36).substr(2, 9) }]);
-  const updateSale = (id: string, updated: Partial<Sale>) => setSales(sales.map(s => s.id === id ? { ...s, ...updated } : s));
-  const deleteSale = (id: string) => setSales(sales.filter(s => s.id !== id));
-  
-  const addExpense = (expense: Omit<Expense, 'id'>) => setExpenses([...expenses, { ...expense, id: Math.random().toString(36).substr(2, 9) }]);
-  const updateExpense = (id: string, updated: Partial<Expense>) => setExpenses(expenses.map(e => e.id === id ? { ...e, ...updated } : e));
-  const deleteExpense = (id: string) => setExpenses(expenses.filter(e => e.id !== id));
-  
-  const addPrinter = (printer: Omit<Printer, 'id'>) => setPrinters([...printers, { ...printer, id: Math.random().toString(36).substr(2, 9) }]);
-  const updatePrinter = (id: string, updated: Partial<Printer>) => setPrinters(printers.map(p => p.id === id ? { ...p, ...updated } : p));
-  const deletePrinter = (id: string) => setPrinters(printers.filter(p => p.id !== id));
-
-  const updateSettings = (newSettings: Partial<Settings>) => setSettings(prev => ({ ...prev, ...newSettings }));
-
-  const clearAllData = () => {
-    setProducts([]);
-    setSales([]);
-    setExpenses([]);
-    setFilaments([{ id: 'f1', name: 'PLA Básico', type: 'PLA', rollPrice: 120, rollWeightGrams: 1000, pricePerKg: 120, stockGrams: 1000 }]);
-    showSuccess('Todos os dados foram limpos!');
+  const deleteFilament = async (id: string) => {
+    const { error } = await supabase.from('filaments').delete().eq('id', id);
+    if (!error) setFilaments(filaments.filter(f => f.id !== id));
   };
 
-  const importAllData = (data: any) => {
-    if (data.filaments) setFilaments(data.filaments);
-    if (data.products) setProducts(data.products);
-    if (data.sales) setSales(data.sales);
-    if (data.expenses) setExpenses(data.expenses);
-    if (data.printers) setPrinters(data.printers);
-    if (data.settings) setSettings(data.settings);
+  const addProduct = async (p: Omit<Product, 'id'>) => {
+    if (!session) return;
+    const { data, error } = await supabase.from('products').insert([{
+      name: p.name, category: p.category, weight_grams: p.weightGrams,
+      print_time_minutes: p.printTimeMinutes, filament_id: p.filamentId,
+      sale_price: p.salePrice, additional_cost: p.additionalCost,
+      default_channel: p.defaultChannel, image_url: p.imageUrl,
+      user_id: session.user.id
+    }]).select().single();
+    if (data) fetchData(session.user.id);
+  };
+
+  const updateProduct = async (id: string, p: Partial<Product>) => {
+    const { error } = await supabase.from('products').update({
+      name: p.name, category: p.category, weight_grams: p.weightGrams,
+      print_time_minutes: p.printTimeMinutes, filament_id: p.filamentId,
+      sale_price: p.salePrice, additional_cost: p.additionalCost,
+      default_channel: p.defaultChannel, image_url: p.imageUrl
+    }).eq('id', id);
+    if (!error) fetchData(session!.user.id);
+  };
+
+  const deleteProduct = async (id: string) => {
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (!error) setProducts(products.filter(p => p.id !== id));
+  };
+
+  const addSale = async (s: Omit<Sale, 'id'>) => {
+    if (!session) return;
+    const { data, error } = await supabase.from('sales').insert([{
+      product_id: s.productId, quantity: s.quantity, channel: s.channel,
+      status: s.status, custom_price: s.customPrice, printer_id: s.printerId,
+      shipping_cost: s.shippingCost, shipping_paid_by: s.shippingPaidBy,
+      user_id: session.user.id, date: s.date
+    }]).select().single();
+    if (data) fetchData(session.user.id);
+  };
+
+  const updateSale = async (id: string, s: Partial<Sale>) => {
+    const { error } = await supabase.from('sales').update({
+      product_id: s.productId, quantity: s.quantity, channel: s.channel,
+      status: s.status, custom_price: s.customPrice, printer_id: s.printerId,
+      shipping_cost: s.shippingCost, shipping_paid_by: s.shippingPaidBy,
+      date: s.date
+    }).eq('id', id);
+    if (!error) fetchData(session!.user.id);
+  };
+
+  const deleteSale = async (id: string) => {
+    const { error } = await supabase.from('sales').delete().eq('id', id);
+    if (!error) setSales(sales.filter(s => s.id !== id));
+  };
+
+  const addExpense = async (e: Omit<Expense, 'id'>) => {
+    if (!session) return;
+    const { data, error } = await supabase.from('expenses').insert([{
+      category: e.category, amount: e.amount, date: e.date,
+      description: e.description, is_recurring: e.isRecurring,
+      user_id: session.user.id
+    }]).select().single();
+    if (data) fetchData(session.user.id);
+  };
+
+  const updateExpense = async (id: string, e: Partial<Expense>) => {
+    const { error } = await supabase.from('expenses').update({
+      category: e.category, amount: e.amount, date: e.date,
+      description: e.description, is_recurring: e.isRecurring
+    }).eq('id', id);
+    if (!error) fetchData(session!.user.id);
+  };
+
+  const deleteExpense = async (id: string) => {
+    const { error } = await supabase.from('expenses').delete().eq('id', id);
+    if (!error) setExpenses(expenses.filter(e => e.id !== id));
+  };
+
+  const addPrinter = async (p: Omit<Printer, 'id'>) => {
+    if (!session) return;
+    const { data, error } = await supabase.from('printers').insert([{
+      name: p.name, purchase_price: p.purchasePrice, purchase_date: p.purchaseDate,
+      status: p.status, user_id: session.user.id
+    }]).select().single();
+    if (data) fetchData(session.user.id);
+  };
+
+  const updatePrinter = async (id: string, p: Partial<Printer>) => {
+    const { error } = await supabase.from('printers').update({
+      name: p.name, purchase_price: p.purchasePrice, purchase_date: p.purchaseDate,
+      status: p.status
+    }).eq('id', id);
+    if (!error) fetchData(session!.user.id);
+  };
+
+  const deletePrinter = async (id: string) => {
+    const { error } = await supabase.from('printers').delete().eq('id', id);
+    if (!error) setPrinters(printers.filter(p => p.id !== id));
+  };
+
+  const updateSettings = async (s: Partial<Settings>) => {
+    if (!session) return;
+    const { error } = await supabase.from('profiles').update({
+      first_name: s.userName, system_name: s.systemName,
+      energy_cost_per_hour: s.energyCostPerHour, channel_fees: s.channelFees,
+      currency: s.currency, monthly_profit_goal: s.monthlyProfitGoal
+    }).eq('id', session.user.id);
+    if (!error) fetchData(session.user.id);
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
   };
 
   return (
     <AppContext.Provider value={{ 
-      products, sales, expenses, printers, filaments, settings, 
+      products, sales, expenses, printers, filaments, settings, session, loading,
       addProduct, updateProduct, deleteProduct, 
       addSale, updateSale, deleteSale,
       addExpense, updateExpense, deleteExpense,
       addPrinter, updatePrinter, deletePrinter,
       addFilament, updateFilament, deleteFilament, updateSettings,
-      calculateProductCost, importAllData, clearAllData
+      calculateProductCost, signOut
     }}>
       {children}
     </AppContext.Provider>
