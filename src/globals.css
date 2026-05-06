@@ -10,20 +10,20 @@
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 15 100% 50%;
+    --primary: 24 100% 50%;
     --primary-foreground: 0 0% 98%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
-    --accent: 15 100% 50%;
+    --accent: 24 100% 50%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 15 100% 50%;
-    --radius: 1rem;
+    --ring: 24 100% 50%;
+    --radius: 1.25rem;
   }
 
   .dark {
@@ -33,19 +33,19 @@
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 15 100% 50%;
+    --primary: 24 100% 50%;
     --primary-foreground: 0 0% 98%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 75%;
-    --accent: 15 100% 50%;
+    --accent: 24 100% 50%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 15 100% 50%;
+    --ring: 24 100% 50%;
   }
 }
 
@@ -64,7 +64,15 @@
 }
 
 .orange-gradient {
-  background: linear-gradient(135deg, #ff5722 0%, #ff9100 100%);
+  background: linear-gradient(135deg, #ff6b00 0%, #ff9100 100%);
+}
+
+.emerald-gradient {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+}
+
+.rose-gradient {
+  background: linear-gradient(135deg, #e11d48 0%, #f43f5e 100%);
 }
 
 .custom-scrollbar::-webkit-scrollbar {

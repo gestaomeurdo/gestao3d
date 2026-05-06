@@ -209,16 +209,15 @@ const Finance = () => {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y divide-border/50">
-                  <div className="p-6 flex justify-between items-center bg-emerald-500/5">
+                  <div className="p-6 flex justify-between items-center bg-emerald-500/10">
                     <span className="font-bold text-emerald-600 flex items-center gap-2"><TrendingUp size={16} /> Faturamento Bruto</span>
-                    <span className="font-black text-emerald-600">+{settings.currency} {formatCurrency(dre.revenue)}</span>
+                    <span className="font-black text-emerald-600 text-xl">+{settings.currency} {formatCurrency(dre.revenue)}</span>
                   </div>
                   
                   <div className="p-6 space-y-6">
-                    {/* CUSTOS DE PRODUÇÃO COM AUDITORIA EXTREMA */}
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm font-bold text-muted-foreground">(-) Custos de Produção (Filamento/Energia)</span>
+                        <span className="text-sm font-bold text-muted-foreground">(-) Custos de Produção</span>
                         <span className="font-black text-rose-500">-{settings.currency} {formatCurrency(dre.productionCost)}</span>
                       </div>
                       
@@ -253,7 +252,7 @@ const Finance = () => {
                     </div>
 
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">(-) Taxas de Canais (ML/Shopee)</span>
+                      <span className="text-muted-foreground">(-) Taxas de Canais</span>
                       <span className="font-bold text-rose-500">-{settings.currency} {formatCurrency(dre.fees)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
@@ -261,27 +260,27 @@ const Finance = () => {
                       <span className="font-bold text-rose-500">-{settings.currency} {formatCurrency(dre.shipping)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">(-) Despesas Fixas / Operacionais</span>
+                      <span className="text-muted-foreground">(-) Despesas Fixas</span>
                       <span className="font-bold text-rose-500">-{settings.currency} {formatCurrency(dre.fixedExpenses)}</span>
                     </div>
                   </div>
 
                   <div className={cn(
-                    "p-6 flex justify-between items-center",
-                    dre.netProfit > 0 ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
+                    "p-6 flex justify-between items-center text-white",
+                    dre.netProfit > 0 ? "emerald-gradient" : "rose-gradient"
                   )}>
                     <span className="font-black text-lg uppercase tracking-widest">Lucro Líquido Real</span>
-                    <span className="font-black text-2xl">{settings.currency} {formatCurrency(dre.netProfit)}</span>
+                    <span className="font-black text-3xl">{settings.currency} {formatCurrency(dre.netProfit)}</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <div className="space-y-6">
-              <Card className="glass-card border-none shadow-md bg-primary/5">
+              <Card className="glass-card border-none shadow-md bg-emerald-500/5">
                 <CardContent className="p-6 text-center space-y-4">
-                  <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Margem de Lucro Real</p>
-                  <h3 className="text-5xl font-black text-primary">
+                  <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Margem de Lucro Real</p>
+                  <h3 className="text-5xl font-black text-emerald-600">
                     {dre.revenue > 0 ? ((dre.netProfit / dre.revenue) * 100).toFixed(1) : '0'}%
                   </h3>
                   <p className="text-xs text-muted-foreground">
@@ -295,19 +294,19 @@ const Finance = () => {
                   <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Saúde do Caixa</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-2xl">
+                  <div className="flex items-center justify-between p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg"><TrendingUp size={16} /></div>
-                      <span className="text-xs font-bold">Entradas</span>
+                      <span className="text-xs font-bold text-emerald-700">Entradas</span>
                     </div>
-                    <span className="text-sm font-black text-emerald-500">+{settings.currency} {formatCurrency(dre.revenue)}</span>
+                    <span className="text-sm font-black text-emerald-600">+{settings.currency} {formatCurrency(dre.revenue)}</span>
                   </div>
-                  <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-2xl">
+                  <div className="flex items-center justify-between p-4 bg-rose-500/5 rounded-2xl border border-rose-500/10">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-rose-500/10 text-rose-500 rounded-lg"><TrendingDown size={16} /></div>
-                      <span className="text-xs font-bold">Saídas</span>
+                      <span className="text-xs font-bold text-rose-700">Saídas</span>
                     </div>
-                    <span className="text-sm font-black text-rose-500">-{settings.currency} {formatCurrency(dre.productionCost + dre.fees + dre.shipping + dre.fixedExpenses)}</span>
+                    <span className="text-sm font-black text-rose-600">-{settings.currency} {formatCurrency(dre.productionCost + dre.fees + dre.shipping + dre.fixedExpenses)}</span>
                   </div>
                 </CardContent>
               </Card>
