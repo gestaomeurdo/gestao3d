@@ -5,7 +5,7 @@ import { useApp, SaleChannel, FilamentType } from '@/context/AppContext';
 import { 
   Save, Zap, CreditCard, User, Monitor, Layers, 
   Plus, Trash2, Download, Upload, ShieldCheck,
-  Database, Scale, Target
+  Database, Scale, Target, Layout
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -85,18 +85,32 @@ const Settings = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* PERFIL E METAS */}
+        {/* PERFIL E PERSONALIZAÇÃO */}
         <Card className="glass-card">
           <CardHeader>
             <div className="flex items-center gap-2">
               <User className="text-blue-500" size={20} />
-              <CardTitle>Perfil e Metas</CardTitle>
+              <CardTitle>Perfil e Personalização</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-2">
               <Label>Seu Nome</Label>
-              <Input className="bg-secondary/50 border-border/50 h-11" value={settings.userName} onChange={e => updateSettings({ userName: e.target.value })} />
+              <Input 
+                className="bg-secondary/50 border-border/50 h-11" 
+                value={settings.userName} 
+                onChange={e => updateSettings({ userName: e.target.value })} 
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label className="flex items-center gap-2">
+                <Layout size={14} className="text-orange-500" /> Nome do Sistema / Empresa
+              </Label>
+              <Input 
+                className="bg-secondary/50 border-border/50 h-11 font-bold" 
+                value={settings.systemName} 
+                onChange={e => updateSettings({ systemName: e.target.value })} 
+              />
             </div>
             <div className="grid gap-2">
               <Label className="flex items-center gap-2">
@@ -104,7 +118,12 @@ const Settings = () => {
               </Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{settings.currency}</span>
-                <Input type="number" className="pl-10 bg-secondary/50 border-border/50 h-11 font-bold" value={settings.monthlyProfitGoal} onChange={e => updateSettings({ monthlyProfitGoal: Number(e.target.value) })} />
+                <Input 
+                  type="number" 
+                  className="pl-10 bg-secondary/50 border-border/50 h-11 font-bold" 
+                  value={settings.monthlyProfitGoal} 
+                  onChange={e => updateSettings({ monthlyProfitGoal: Number(e.target.value) })} 
+                />
               </div>
             </div>
           </CardContent>
@@ -123,7 +142,7 @@ const Settings = () => {
               <Label className="text-muted-foreground">Custo Energia (por hora de impressão)</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{settings.currency}</span>
-                <Input type="number" step="0.01" className="pl-10 bg-secondary/50 border-border/50 h-11" value={settings.energyCostPerHour || ''} onChange={e => updateSettings({ energyCostPerHour: Number(e.target.value) })} />
+                <Input type="number" step="0.01" className="pl-10 bg-secondary/50 border-border/50 h-11" value={settings.energyCostPerHour || ''} onChange={e => updateSettings({ energyPerHour: Number(e.target.value) })} />
               </div>
             </div>
           </CardContent>
