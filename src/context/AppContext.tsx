@@ -163,7 +163,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (prod) setProducts(prod.map(p => ({
         id: p.id, name: p.name, category: p.category,
         weightGrams: Number(p.weight_grams), printTimeMinutes: Number(p.print_time_minutes),
-        filamentId: p.filament_id, salePrice: Number(p.sale_price),
+        filamentId: p.filament_id, sale_price: Number(p.sale_price),
         additionalCost: Number(p.additional_cost), defaultChannel: p.default_channel as SaleChannel,
         imageUrl: p.image_url
       })));
@@ -277,7 +277,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateProduct = async (id: string, p: Partial<Product>) => {
     if (!session) return;
     const { error } = await supabase.from('products').update({
-      name: p.name, category: p.category, weight_grams: p.weightGrams,
+      name: p.name, category: p.category, weight_grams: p.weight_grams,
       print_time_minutes: p.printTimeMinutes, filament_id: p.filamentId,
       sale_price: p.salePrice, additional_cost: p.additionalCost,
       default_channel: p.defaultChannel, image_url: p.imageUrl
@@ -309,7 +309,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!session) return;
     const { error } = await supabase.from('sales').update({
       product_id: s.productId, quantity: s.quantity, channel: s.channel,
-      status: s.status, custom_price: s.customPrice, printer_id: s.printerId,
+      status: s.status, custom_price: s.custom_price, printer_id: s.printerId,
       shipping_cost: s.shipping_cost, shipping_paid_by: s.shipping_paid_by,
       date: s.date
     }).eq('id', id);
@@ -381,7 +381,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateSettings = async (s: Partial<Settings>) => {
     if (!session) return;
-    const { error } = await supabase.from('profiles').upsert({
+    
+    // Objeto base para o upsert
+    const updatePayload: any = {
       id: session.user.id,
       first_name: s.userName, 
       system_name: s.systemName,
@@ -389,11 +391,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       channel_fees: s.channelFees,
       currency: s.currency, 
       monthly_profit_goal: s.monthlyProfitGoal,
-      avatar_url: s.avatarUrl,
       updated_at: new Date().toISOString()
-    });
-    if (error) showError("Erro ao salvar configurações.");
-    else {
+    };
+
+    // Só inclui avatar_url se ele existir no objeto s
+    if (s.avatarUrl) {
+      updatePayload.avatar_url = s.avatarUrl;
+    }
+
+    const { error } = await supabase.from('profiles').upsert(updatePayload);
+    
+    if (error) {
+      console.error("[AppContext] Erro ao salvar configurações:", error);
+      // Se o erro for de coluna inexistente, avisamos o usuário
+      if (error.message.includes("avatar_url")) {
+        showError("Erro: Você precisa adicionar a coluna 'avatar_url' no SQL do Supabase.");
+      } else {
+        showError("Erro ao salvar configurações. Verifique sua conexão.");
+      }
+    } else {
       showSuccess("Configurações salvas!");
       fetchData(session.user.id);
     }
