@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 export type FilamentType = 'PLA' | 'PETG' | 'ABS' | 'Resina' | 'Outro';
 export type SaleStatus = 'pago' | 'enviado' | 'entregue';
 export type SaleChannel = 'Mercado Livre' | 'Shopee' | 'Direto' | 'Instagram';
-export type ExpenseCategory = 'filamento' | 'energia' | 'manutenção' | 'equipamentos' | 'outros';
+export type ExpenseCategory = 'filamento' | 'energia' | 'manutenção' | 'equipamentos' | 'marketing' | 'outros';
 
 export interface Product {
   id: string;
@@ -29,7 +29,7 @@ export interface Sale {
   channel: SaleChannel;
   status: SaleStatus;
   customPrice?: number;
-  printerId?: string; // Vínculo com a impressora
+  printerId?: string;
 }
 
 export interface Expense {
@@ -38,6 +38,7 @@ export interface Expense {
   amount: number;
   date: string;
   description: string;
+  isRecurring?: boolean;
 }
 
 export interface Printer {
@@ -78,6 +79,7 @@ interface AppContextType {
   deleteProduct: (id: string) => void;
   addSale: (sale: Omit<Sale, 'id'>) => void;
   addExpense: (expense: Omit<Expense, 'id'>) => void;
+  deleteExpense: (id: string) => void;
   addPrinter: (printer: Omit<Printer, 'id'>) => void;
   updatePrinterStatus: (id: string, status: Printer['status']) => void;
   deletePrinter: (id: string) => void;
@@ -148,7 +150,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteProduct = (id: string) => setProducts(products.filter(p => p.id !== id));
   
   const addSale = (sale: Omit<Sale, 'id'>) => setSales([...sales, { ...sale, id: Math.random().toString(36).substr(2, 9) }]);
+  
   const addExpense = (expense: Omit<Expense, 'id'>) => setExpenses([...expenses, { ...expense, id: Math.random().toString(36).substr(2, 9) }]);
+  const deleteExpense = (id: string) => setExpenses(expenses.filter(e => e.id !== id));
   
   const addPrinter = (printer: Omit<Printer, 'id'>) => setPrinters([...printers, { ...printer, id: Math.random().toString(36).substr(2, 9) }]);
   const updatePrinterStatus = (id: string, status: Printer['status']) => setPrinters(printers.map(p => p.id === id ? { ...p, status } : p));
@@ -162,7 +166,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     <AppContext.Provider value={{ 
       products, sales, expenses, printers, printJobs, settings, 
       addProduct, updateProduct, deleteProduct, 
-      addSale, addExpense, addPrinter, updatePrinterStatus, deletePrinter, addPrintJob, updateSettings,
+      addSale, addExpense, deleteExpense, addPrinter, updatePrinterStatus, deletePrinter, addPrintJob, updateSettings,
       calculateProductCost
     }}>
       {children}
