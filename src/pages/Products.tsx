@@ -6,7 +6,7 @@ import {
   Plus, Search, Trash2, Package, Clock, Zap, 
   ArrowUpRight, AlertCircle, Info, TrendingUp, 
   DollarSign, Calculator, Layers, ShoppingBag,
-  Target, Percent, HelpCircle
+  Target, Percent, HelpCircle, ImageIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -113,6 +113,19 @@ const Products = () => {
                         onChange={e => setNewProduct({...newProduct, name: e.target.value})}
                       />
                     </div>
+                    
+                    <div className="grid gap-2">
+                      <Label className="text-xs font-bold uppercase text-slate-400 flex items-center gap-2">
+                        <ImageIcon size={14} /> Link da Foto (URL)
+                      </Label>
+                      <Input 
+                        placeholder="https://exemplo.com/foto.jpg"
+                        className="h-12 rounded-xl border-slate-200" 
+                        value={newProduct.imageUrl}
+                        onChange={e => setNewProduct({...newProduct, imageUrl: e.target.value})}
+                      />
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label className="text-xs font-bold uppercase text-slate-400">Filamento do Estoque</Label>
@@ -253,8 +266,12 @@ const Products = () => {
           return (
             <Card key={product.id} className="group bg-white border-slate-200 rounded-3xl overflow-hidden hover:shadow-xl transition-all border">
               <CardContent className="p-0">
-                <div className="h-40 bg-slate-50 relative flex items-center justify-center">
-                  <Package size={48} className="text-slate-200" />
+                <div className="h-48 bg-slate-50 relative flex items-center justify-center overflow-hidden">
+                  {product.imageUrl ? (
+                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                  ) : (
+                    <Package size={48} className="text-slate-200" />
+                  )}
                   <div className="absolute top-4 left-4">
                     <Badge className="bg-white/80 backdrop-blur-md text-slate-900 border-none shadow-sm">
                       {filament?.name || 'Material'}
@@ -262,7 +279,7 @@ const Products = () => {
                   </div>
                   <Button 
                     variant="ghost" size="icon" 
-                    className="absolute top-4 right-4 h-8 w-8 rounded-lg hover:bg-rose-50 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-4 right-4 h-8 w-8 rounded-lg bg-white/80 backdrop-blur-md hover:bg-rose-50 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => deleteProduct(product.id)}
                   >
                     <Trash2 size={16} />

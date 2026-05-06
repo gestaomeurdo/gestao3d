@@ -66,7 +66,7 @@ export interface Settings {
   energyCostPerHour: number;
   channelFees: Record<SaleChannel, number>;
   currency: string;
-  monthlyProfitGoal: number; // Novo: Meta de lucro configurável
+  monthlyProfitGoal: number;
 }
 
 interface AppContextType {
@@ -136,6 +136,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   });
 
+  // Efeito para salvar sempre que qualquer estado mudar
   useEffect(() => {
     localStorage.setItem('printsaas_filaments', JSON.stringify(filaments));
     localStorage.setItem('printsaas_products', JSON.stringify(products));
@@ -182,7 +183,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addPrinter = (printer: Omit<Printer, 'id'>) => setPrinters([...printers, { ...printer, id: Math.random().toString(36).substr(2, 9) }]);
   const deletePrinter = (id: string) => setPrinters(printers.filter(p => p.id !== id));
 
-  const updateSettings = (newSettings: Partial<Settings>) => setSettings({ ...settings, ...newSettings });
+  const updateSettings = (newSettings: Partial<Settings>) => {
+    setSettings(prev => ({ ...prev, ...newSettings }));
+  };
 
   const importAllData = (data: any) => {
     if (data.filaments) setFilaments(data.filaments);
