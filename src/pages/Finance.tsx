@@ -28,7 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { showSuccess } from '@/utils/toast';
 import { format, startOfMonth, isWithinInterval, endOfMonth } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 
 const Finance = () => {
   const { expenses, addExpense, deleteExpense, settings, sales, products, filaments, calculateProductCost } = useApp();
@@ -211,7 +211,7 @@ const Finance = () => {
                 <div className="divide-y divide-border/50">
                   <div className="p-6 flex justify-between items-center bg-emerald-500/5">
                     <span className="font-bold text-emerald-600 flex items-center gap-2"><TrendingUp size={16} /> Faturamento Bruto</span>
-                    <span className="font-black text-emerald-600">+{settings.currency} {dre.revenue.toLocaleString()}</span>
+                    <span className="font-black text-emerald-600">+{settings.currency} {formatCurrency(dre.revenue)}</span>
                   </div>
                   
                   <div className="p-6 space-y-6">
@@ -219,7 +219,7 @@ const Finance = () => {
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-bold text-muted-foreground">(-) Custos de Produção (Filamento/Energia)</span>
-                        <span className="font-black text-rose-500">-{settings.currency} {dre.productionCost.toLocaleString()}</span>
+                        <span className="font-black text-rose-500">-{settings.currency} {formatCurrency(dre.productionCost)}</span>
                       </div>
                       
                       <div className="bg-slate-900 rounded-2xl p-5 space-y-4 border border-white/10">
@@ -229,7 +229,7 @@ const Finance = () => {
                           </div>
                           <div className="flex gap-4">
                             <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                              <Zap size={10} className="text-yellow-500" /> Energia: <span className="text-white font-bold">{settings.currency} {settings.energyCostPerHour}/h</span>
+                              <Zap size={10} className="text-yellow-500" /> Energia: <span className="text-white font-bold">{settings.currency} {formatCurrency(settings.energyCostPerHour)}/h</span>
                             </div>
                           </div>
                         </div>
@@ -239,34 +239,30 @@ const Finance = () => {
                             <div key={idx} className="space-y-1 border-b border-white/5 pb-2 last:border-0">
                               <div className="flex items-center justify-between">
                                 <span className="text-xs font-bold text-white">{item.qty}x {item.name}</span>
-                                <span className="text-sm font-black text-rose-400">{settings.currency} {item.totalCost.toLocaleString()}</span>
+                                <span className="text-sm font-black text-rose-400">{settings.currency} {formatCurrency(item.totalCost)}</span>
                               </div>
                               <div className="flex gap-3 text-[9px] text-slate-500 font-bold uppercase">
-                                <span className="flex items-center gap-1"><Layers size={8} /> {item.filamentName}: {settings.currency} {item.filamentPrice}/kg</span>
+                                <span className="flex items-center gap-1"><Layers size={8} /> {item.filamentName}: {settings.currency} {formatCurrency(item.filamentPrice)}/kg</span>
                                 <span>•</span>
-                                <span>Custo Unitário: {settings.currency} {item.unitCost.toFixed(2)}</span>
+                                <span>Custo Unitário: {settings.currency} {formatCurrency(item.unitCost)}</span>
                               </div>
                             </div>
                           ))}
                         </div>
-                        
-                        <p className="text-[9px] text-slate-500 italic leading-relaxed">
-                          Se o valor acima está em milhares, verifique se o **Preço/Kg** do filamento ou o **Custo de Energia** nas configurações não está com zeros a mais.
-                        </p>
                       </div>
                     </div>
 
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">(-) Taxas de Canais (ML/Shopee)</span>
-                      <span className="font-bold text-rose-500">-{settings.currency} {dre.fees.toLocaleString()}</span>
+                      <span className="font-bold text-rose-500">-{settings.currency} {formatCurrency(dre.fees)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">(-) Fretes Pagos</span>
-                      <span className="font-bold text-rose-500">-{settings.currency} {dre.shipping.toLocaleString()}</span>
+                      <span className="font-bold text-rose-500">-{settings.currency} {formatCurrency(dre.shipping)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">(-) Despesas Fixas / Operacionais</span>
-                      <span className="font-bold text-rose-500">-{settings.currency} {dre.fixedExpenses.toLocaleString()}</span>
+                      <span className="font-bold text-rose-500">-{settings.currency} {formatCurrency(dre.fixedExpenses)}</span>
                     </div>
                   </div>
 
@@ -275,7 +271,7 @@ const Finance = () => {
                     dre.netProfit > 0 ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
                   )}>
                     <span className="font-black text-lg uppercase tracking-widest">Lucro Líquido Real</span>
-                    <span className="font-black text-2xl">{settings.currency} {dre.netProfit.toLocaleString()}</span>
+                    <span className="font-black text-2xl">{settings.currency} {formatCurrency(dre.netProfit)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -304,14 +300,14 @@ const Finance = () => {
                       <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg"><TrendingUp size={16} /></div>
                       <span className="text-xs font-bold">Entradas</span>
                     </div>
-                    <span className="text-sm font-black text-emerald-500">+{settings.currency} {dre.revenue.toLocaleString()}</span>
+                    <span className="text-sm font-black text-emerald-500">+{settings.currency} {formatCurrency(dre.revenue)}</span>
                   </div>
                   <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-2xl">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-rose-500/10 text-rose-500 rounded-lg"><TrendingDown size={16} /></div>
                       <span className="text-xs font-bold">Saídas</span>
                     </div>
-                    <span className="text-sm font-black text-rose-500">-{settings.currency} {(dre.productionCost + dre.fees + dre.shipping + dre.fixedExpenses).toLocaleString()}</span>
+                    <span className="text-sm font-black text-rose-500">-{settings.currency} {formatCurrency(dre.productionCost + dre.fees + dre.shipping + dre.fixedExpenses)}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -347,7 +343,7 @@ const Finance = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-6">
-                    <p className="text-lg font-black text-rose-500">-{settings.currency} {expense.amount.toFixed(2)}</p>
+                    <p className="text-lg font-black text-rose-500">-{settings.currency} {formatCurrency(expense.amount)}</p>
                     <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-rose-500" onClick={() => deleteExpense(expense.id)}>
                       <Trash2 size={18} />
                     </Button>
