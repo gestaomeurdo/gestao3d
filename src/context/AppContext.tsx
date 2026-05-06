@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from '@supabase/supabase-js';
+import { showError, showSuccess } from '@/utils/toast';
 
 export type FilamentType = 'PLA' | 'PETG' | 'ABS' | 'Resina' | 'Outro';
 export type SaleStatus = 'pago' | 'enviado' | 'entregue';
@@ -123,7 +124,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const fetchData = async (userId: string) => {
     try {
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      const { data: prof, error: profError } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
       
       if (prof) {
         setSettings({
@@ -184,7 +185,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })));
 
     } catch (error) {
-      console.warn("Aviso: Falha parcial ao carregar dados, continuando...", error);
+      console.error("[AppContext] Erro ao carregar dados:", error);
     } finally {
       setLoading(false);
     }
@@ -234,121 +235,164 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addFilament = async (f: Omit<Filament, 'id' | 'pricePerKg'>) => {
     if (!session) return;
     const pricePerKg = (f.rollPrice / f.rollWeightGrams) * 1000;
-    const { data } = await supabase.from('filaments').insert([{
-      ...f, price_per_kg: pricePerKg, user_id: session.user.id
-    }]).select().single();
-    if (data) fetchData(session.user.id);
+    const { error } = await supabase.from('filaments').insert([{
+      name: f.name, type: f.type, roll_price: f.rollPrice, 
+      roll_weight_grams: f.rollWeightGrams, price_per_kg: pricePerKg,
+      stock_grams: f.stockGrams, color: f.color, user_id: session.user.id
+    }]);
+    
+    if (error) {
+      console.error("[AppContext] Erro ao adicionar filamento:", error);
+      showError("Erro ao salvar filamento. Verifique o banco de dados.");
+    } else {
+      fetchData(session.user.id);
+    }
   };
 
   const updateFilament = async (id: string, updated: Partial<Filament>) => {
+    if (!session) return;
     const { error } = await supabase.from('filaments').update({
-      ...updated,
-      price_per_kg: updated.rollPrice && updated.rollWeightGrams ? (updated.rollPrice / updated.rollWeightGrams) * 1000 : undefined
+      name: updated.name, type: updated.type, roll_price: updated.rollPrice,
+      roll_weight_grams: updated.rollWeightGrams, stock_grams: updated.stockGrams,
+      color: updated.color,
+      price_per_kg: (updated.rollPrice && updated.rollWeightGrams) ? (updated.rollPrice / updated.rollWeightGrams) * 1000 : undefined
     }).eq('id', id);
-    if (!error && session) fetchData(session.user.id);
+    
+    if (error) showError("Erro ao atualizar filamento.");
+    else fetchData(session.user.id);
   };
 
   const deleteFilament = async (id: string) => {
+    if (!session) return;
     const { error } = await supabase.from('filaments').delete().eq('id', id);
-    if (!error) setFilaments(filaments.filter(f => f.id !== id));
+    if (error) showError("Erro ao excluir. O filamento pode estar em uso.");
+    else fetchData(session.user.id);
   };
 
   const addProduct = async (p: Omit<Product, 'id'>) => {
     if (!session) return;
-    const { data } = await supabase.from('products').insert([{
+    const { error } = await supabase.from('products').insert([{
       name: p.name, category: p.category, weight_grams: p.weightGrams,
       print_time_minutes: p.printTimeMinutes, filament_id: p.filamentId,
       sale_price: p.salePrice, additional_cost: p.additionalCost,
       default_channel: p.defaultChannel, image_url: p.imageUrl,
       user_id: session.user.id
-    }]).select().single();
-    if (data) fetchData(session.user.id);
+    }]);
+    
+    if (error) showError("Erro ao salvar produto.");
+    else fetchData(session.user.id);
   };
 
   const updateProduct = async (id: string, p: Partial<Product>) => {
+    if (!session) return;
     const { error } = await supabase.from('products').update({
       name: p.name, category: p.category, weight_grams: p.weightGrams,
       print_time_minutes: p.printTimeMinutes, filament_id: p.filamentId,
       sale_price: p.salePrice, additional_cost: p.additionalCost,
       default_channel: p.defaultChannel, image_url: p.imageUrl
     }).eq('id', id);
-    if (!error && session) fetchData(session.user.id);
+    
+    if (error) showError("Erro ao atualizar produto.");
+    else fetchData(session.user.id);
   };
 
   const deleteProduct = async (id: string) => {
+    if (!session) return;
     const { error } = await supabase.from('products').delete().eq('id', id);
-    if (!error) setProducts(products.filter(p => p.id !== id));
+    if (error) showError("Erro ao excluir produto.");
+    else fetchData(session.user.id);
   };
 
   const addSale = async (s: Omit<Sale, 'id'>) => {
     if (!session) return;
-    const { data } = await supabase.from('sales').insert([{
+    const { error } = await supabase.from('sales').insert([{
       product_id: s.productId, quantity: s.quantity, channel: s.channel,
       status: s.status, custom_price: s.customPrice, printer_id: s.printerId,
       shipping_cost: s.shipping_cost, shipping_paid_by: s.shipping_paid_by,
       user_id: session.user.id, date: s.date
-    }]).select().single();
-    if (data) fetchData(session.user.id);
+    }]);
+    
+    if (error) showError("Erro ao registrar venda.");
+    else fetchData(session.user.id);
   };
 
   const updateSale = async (id: string, s: Partial<Sale>) => {
+    if (!session) return;
     const { error } = await supabase.from('sales').update({
       product_id: s.productId, quantity: s.quantity, channel: s.channel,
       status: s.status, custom_price: s.custom_price, printer_id: s.printerId,
       shipping_cost: s.shipping_cost, shipping_paid_by: s.shipping_paid_by,
       date: s.date
     }).eq('id', id);
-    if (!error && session) fetchData(session.user.id);
+    
+    if (error) showError("Erro ao atualizar venda.");
+    else fetchData(session.user.id);
   };
 
   const deleteSale = async (id: string) => {
+    if (!session) return;
     const { error } = await supabase.from('sales').delete().eq('id', id);
-    if (!error) setSales(sales.filter(s => s.id !== id));
+    if (error) showError("Erro ao excluir venda.");
+    else fetchData(session.user.id);
   };
 
   const addExpense = async (e: Omit<Expense, 'id'>) => {
     if (!session) return;
-    const { data } = await supabase.from('expenses').insert([{
+    const { error } = await supabase.from('expenses').insert([{
       category: e.category, amount: e.amount, date: e.date,
       description: e.description, is_recurring: e.isRecurring,
       user_id: session.user.id
-    }]).select().single();
-    if (data) fetchData(session.user.id);
+    }]);
+    
+    if (error) showError("Erro ao registrar gasto.");
+    else fetchData(session.user.id);
   };
 
   const updateExpense = async (id: string, e: Partial<Expense>) => {
+    if (!session) return;
     const { error } = await supabase.from('expenses').update({
       category: e.category, amount: e.amount, date: e.date,
       description: e.description, is_recurring: e.isRecurring
     }).eq('id', id);
-    if (!error && session) fetchData(session.user.id);
+    
+    if (error) showError("Erro ao atualizar gasto.");
+    else fetchData(session.user.id);
   };
 
   const deleteExpense = async (id: string) => {
+    if (!session) return;
     const { error } = await supabase.from('expenses').delete().eq('id', id);
-    if (!error) setExpenses(expenses.filter(e => e.id !== id));
+    if (error) showError("Erro ao excluir gasto.");
+    else fetchData(session.user.id);
   };
 
   const addPrinter = async (p: Omit<Printer, 'id'>) => {
     if (!session) return;
-    const { data } = await supabase.from('printers').insert([{
+    const { error } = await supabase.from('printers').insert([{
       name: p.name, purchase_price: p.purchasePrice, purchase_date: p.purchaseDate,
       status: p.status, user_id: session.user.id
-    }]).select().single();
-    if (data) fetchData(session.user.id);
+    }]);
+    
+    if (error) showError("Erro ao adicionar impressora.");
+    else fetchData(session.user.id);
   };
 
   const updatePrinter = async (id: string, p: Partial<Printer>) => {
+    if (!session) return;
     const { error } = await supabase.from('printers').update({
       name: p.name, purchase_price: p.purchasePrice, purchase_date: p.purchaseDate,
       status: p.status
     }).eq('id', id);
-    if (!error && session) fetchData(session.user.id);
+    
+    if (error) showError("Erro ao atualizar impressora.");
+    else fetchData(session.user.id);
   };
 
   const deletePrinter = async (id: string) => {
+    if (!session) return;
     const { error } = await supabase.from('printers').delete().eq('id', id);
-    if (!error) setPrinters(printers.filter(p => p.id !== id));
+    if (error) showError("Erro ao excluir impressora.");
+    else fetchData(session.user.id);
   };
 
   const updateSettings = async (s: Partial<Settings>) => {
@@ -363,7 +407,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       monthly_profit_goal: s.monthlyProfitGoal,
       updated_at: new Date().toISOString()
     });
-    if (!error) fetchData(session.user.id);
+    
+    if (error) {
+      console.error("[AppContext] Erro ao salvar configurações:", error);
+      showError("Erro ao salvar configurações.");
+    } else {
+      fetchData(session.user.id);
+    }
   };
 
   const signOut = async () => {
