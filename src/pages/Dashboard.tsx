@@ -25,6 +25,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { cn, formatCurrency } from '@/lib/utils';
 import { format, startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 import LowStockAlert from '@/components/LowStockAlert';
 
@@ -87,7 +88,7 @@ const Dashboard = () => {
       const d = subMonths(new Date(), i);
       const start = startOfMonth(d);
       const end = endOfMonth(d);
-      const monthName = format(d, 'MMM');
+      const monthName = format(d, 'MMM', { locale: ptBR });
 
       const monthSales = sales.filter(s => isWithinInterval(new Date(s.date), { start, end }));
       const monthExpenses = expenses.filter(e => isWithinInterval(new Date(e.date), { start, end }));
@@ -127,8 +128,8 @@ const Dashboard = () => {
       
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black tracking-tight">Dashboard Financeiro</h1>
-          <p className="text-muted-foreground mt-1">Bem-vindo de volta, {settings.userName}. Aqui está o pulso real do seu negócio.</p>
+          <h1 className="text-4xl font-black tracking-tight">Painel Principal</h1>
+          <p className="text-muted-foreground mt-1">Boas-vindas, {settings.userName}. Aqui está o resumo real do seu negócio.</p>
         </div>
         
         <div className="flex items-center gap-4 bg-card p-4 rounded-3xl border border-border/50 shadow-sm">
@@ -141,7 +142,7 @@ const Dashboard = () => {
           </div>
           <div className="h-10 w-[1px] bg-border mx-2" />
           <Link to="/sales">
-            <Button size="sm" className="orange-gradient text-white rounded-xl">Retirar</Button>
+            <Button size="sm" className="orange-gradient text-white rounded-xl">Detalhes</Button>
           </Link>
         </div>
       </div>
@@ -158,7 +159,7 @@ const Dashboard = () => {
         <Card className="glass-card border-none shadow-md bg-emerald-500/5 overflow-hidden relative">
           <div className="absolute top-0 right-0 p-4 opacity-10 text-emerald-500"><TrendingUp size={64} /></div>
           <CardContent className="p-6">
-            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Lucro Líquido Real</p>
+            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Lucro Real Líquido</p>
             <h3 className="text-3xl font-black text-emerald-500 mt-2">{settings.currency} {formatCurrency(financialStats.monthlyNetProfit ?? 0)}</h3>
             <Badge className="mt-2 bg-emerald-500 text-white border-none">{(financialStats.margin ?? 0).toFixed(1)}% Margem</Badge>
           </CardContent>
@@ -167,7 +168,7 @@ const Dashboard = () => {
         <Card className="glass-card border-none shadow-md bg-rose-500/5 overflow-hidden relative">
           <div className="absolute top-0 right-0 p-4 opacity-10 text-rose-500"><DollarSign size={64} /></div>
           <CardContent className="p-6">
-            <p className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">Despesas Totais</p>
+            <p className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">Custo Operacional</p>
             <h3 className="text-3xl font-black text-rose-500 mt-2">{settings.currency} {formatCurrency((financialStats.monthlyFixedExpenses ?? 0) + (financialStats.monthlyProductionCost ?? 0))}</h3>
           </CardContent>
         </Card>
@@ -188,8 +189,8 @@ const Dashboard = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-xl font-bold">Performance Mensal Real</CardTitle>
-                  <CardDescription>Histórico baseado em suas vendas e gastos reais.</CardDescription>
+                  <CardTitle className="text-xl font-bold">Desempenho dos Últimos Meses</CardTitle>
+                  <CardDescription>Comparativo entre lucro real e gastos de produção.</CardDescription>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
@@ -217,9 +218,10 @@ const Dashboard = () => {
                   <YAxis hide />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                    labelStyle={{ fontWeight: 'bold' }}
                   />
-                  <Area type="monotone" dataKey="lucro" stroke="#ff5722" strokeWidth={4} fillOpacity={1} fill="url(#colorLucro)" />
-                  <Area type="monotone" dataKey="gastos" stroke="#d4d4d8" strokeWidth={2} fill="transparent" strokeDasharray="5 5" />
+                  <Area type="monotone" dataKey="lucro" name="Lucro" stroke="#ff5722" strokeWidth={4} fillOpacity={1} fill="url(#colorLucro)" />
+                  <Area type="monotone" dataKey="gastos" name="Gastos" stroke="#d4d4d8" strokeWidth={2} fill="transparent" strokeDasharray="5 5" />
                 </AreaChart>
               </ResponsiveContainer>
             </CardContent>
@@ -228,9 +230,9 @@ const Dashboard = () => {
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold flex items-center gap-2">
-                <ArrowRightLeft size={20} className="text-primary" /> Fluxo Recente
+                <ArrowRightLeft size={20} className="text-primary" /> Atividades Recentes
               </h2>
-              <Link to="/sales" className="text-xs text-primary font-bold hover:underline">Ver extrato completo</Link>
+              <Link to="/sales" className="text-xs text-primary font-bold hover:underline">Ver todas as vendas</Link>
             </div>
             <div className="space-y-3">
               {sales.slice(0, 3).map(sale => {
@@ -243,7 +245,7 @@ const Dashboard = () => {
                       </div>
                       <div>
                         <p className="font-bold text-sm">Venda: {product?.name}</p>
-                        <p className="text-[10px] text-muted-foreground font-bold uppercase">{format(new Date(sale.date), 'dd MMM, HH:mm')}</p>
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase">{format(new Date(sale.date), "dd 'de' MMM, HH:mm", { locale: ptBR })}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -262,7 +264,7 @@ const Dashboard = () => {
           <Card className="glass-card border-none bg-primary/5 relative overflow-hidden">
             <div className="absolute -right-4 -bottom-4 opacity-10 text-primary rotate-12"><Target size={120} /></div>
             <CardContent className="p-6">
-              <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Meta de Lucro Mensal</p>
+              <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Sua Meta Mensal</p>
               <h3 className="text-3xl font-black mt-1">{settings.currency} {formatCurrency(profitGoal ?? 0)}</h3>
               <div className="mt-6 space-y-4">
                 <div className="flex justify-between items-end">

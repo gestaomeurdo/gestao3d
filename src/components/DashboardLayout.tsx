@@ -29,19 +29,19 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/dropdown-menu";
 
 const navItems = [
-  { group: "Geral", items: [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Produtos', path: '/products', icon: Package },
+  { group: "Principal", items: [
+    { name: 'Início', path: '/', icon: LayoutDashboard },
+    { name: 'Catálogo', path: '/products', icon: Package },
     { name: 'Vendas', path: '/sales', icon: ShoppingCart },
   ]},
-  { group: "Operação", items: [
+  { group: "Gestão", items: [
     { name: 'Financeiro', path: '/finance', icon: Wallet },
-    { name: 'Impressoras', path: '/printers', icon: PrinterIcon },
+    { name: 'Máquinas', path: '/printers', icon: PrinterIcon },
   ]},
-  { group: "Sistema", items: [
+  { group: "Ajustes", items: [
     { name: 'Configurações', path: '/settings', icon: SettingsIcon },
   ]}
 ];
@@ -51,7 +51,6 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { settings, session, signOut } = useApp();
   const { theme, setTheme } = useTheme();
   
-  // Puxa a foto do Google dos metadados do Supabase
   const googleAvatar = session?.user?.user_metadata?.avatar_url;
   const userName = session?.user?.user_metadata?.full_name || settings?.userName || "Usuário";
   const systemName = settings?.systemName || "PrintSaaS";
@@ -104,7 +103,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold truncate text-slate-900">{userName}</p>
-            <p className="text-[10px] text-slate-400 font-bold uppercase">Administrador</p>
+            <p className="text-[10px] text-slate-400 font-bold uppercase">Gerente</p>
           </div>
         </div>
       </div>
@@ -113,13 +112,11 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   return (
     <div className="flex h-screen bg-white overflow-hidden font-sans">
-      {/* Desktop Sidebar */}
       <aside className="hidden lg:block w-72 flex-shrink-0 border-r border-slate-100">
         <SidebarContent />
       </aside>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        {/* Topbar */}
         <header className="h-20 flex items-center justify-between px-8 border-b border-slate-100 bg-white/80 backdrop-blur-md z-10">
           <div className="flex items-center gap-4 flex-1 max-w-xl">
             <div className="relative w-full">
@@ -143,7 +140,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
             
             <div className="hidden md:flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full text-[10px] font-black uppercase text-emerald-600 tracking-wider">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Sistema Ativo
+              Online
             </div>
 
             <div className="flex items-center gap-3">
@@ -157,7 +154,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                   <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
                     <div className="text-right hidden sm:block">
                       <p className="text-sm font-black text-slate-900 leading-none">{userName}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Configurações</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Perfil</p>
                     </div>
                     <Avatar className="h-10 w-10 border-2 border-orange-500/20 shadow-sm">
                       <AvatarImage src={googleAvatar} />
@@ -171,7 +168,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                   <DropdownMenuSeparator className="bg-slate-50" />
                   <DropdownMenuItem onClick={() => signOut()} className="text-rose-500 focus:text-rose-600 focus:bg-rose-50 cursor-pointer rounded-2xl h-12 px-4 font-bold">
                     <LogOut className="mr-3 h-5 w-5" />
-                    <span>Sair do Sistema</span>
+                    <span>Sair da Conta</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -179,7 +176,6 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-[#FDFDFD]">
           <div className="max-w-7xl mx-auto">
             {children}
