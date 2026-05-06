@@ -6,7 +6,7 @@ import {
   Plus, Receipt, Trash2, Calendar, Tag, DollarSign, 
   TrendingUp, ArrowDownRight, Info, AlertCircle, 
   PieChart, Wallet, Repeat, Search, ArrowRightLeft,
-  TrendingDown, BarChart3, Package
+  TrendingDown, BarChart3, Package, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,7 +55,7 @@ const Finance = () => {
     let fees = 0;
     let shipping = 0;
     
-    const productBreakdown: Record<string, { name: string, cost: number, qty: number }> = {};
+    const productBreakdown: Record<string, { name: string, unitCost: number, totalCost: number, qty: number }> = {};
 
     monthSales.forEach(s => {
       const p = products.find(prod => prod.id === s.productId);
@@ -70,9 +70,9 @@ const Finance = () => {
         if (s.shippingPaidBy === 'vendedor') shipping += (s.shippingCost || 0);
 
         if (!productBreakdown[p.id]) {
-          productBreakdown[p.id] = { name: p.name, cost: 0, qty: 0 };
+          productBreakdown[p.id] = { name: p.name, unitCost, totalCost: 0, qty: 0 };
         }
-        productBreakdown[p.id].cost += totalUnitCost;
+        productBreakdown[p.id].totalCost += totalUnitCost;
         productBreakdown[p.id].qty += s.quantity;
       }
     });
@@ -87,7 +87,7 @@ const Finance = () => {
       shipping, 
       fixedExpenses, 
       netProfit,
-      productBreakdown: Object.values(productBreakdown).sort((a, b) => b.cost - a.cost)
+      productBreakdown: Object.values(productBreakdown).sort((a, b) => b.totalCost - a.totalCost)
     };
   }, [sales, expenses, products, calculateProductCost, settings]);
 
@@ -204,23 +204,40 @@ const Finance = () => {
                     <span className="font-bold text-emerald-600 flex items-center gap-2"><TrendingUp size={16} /> Faturamento Bruto</span>
                     <span className="font-black text-emerald-600">+{settings.currency} {dre.revenue.toLocaleString()}</span>
                   </div>
-                  <div className="p-6 space-y-4">
-                    <div className="flex flex-col gap-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">(-) Custos de Produção (Filamento/Energia)</span>
-                        <span className="font-bold text-rose-500">-{settings.currency} {dre.productionCost.toLocaleString()}</span>
+                  
+                  <div className="p-6 space-y-6">
+                    {/* CUSTOS DE PRODUÇÃO COM AUDITORIA */}
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-bold text-muted-foreground">(-) Custos de Produção (Filamento/Energia)</span>
+                        <span className="font-black text-rose-500">-{settings.currency} {dre.productionCost.toLocaleString()}</span>
                       </div>
-                      {/* DETALHAMENTO DE CUSTOS POR PRODUTO */}
-                      <div className="mt-2 space-y-1 pl-4 border-l-2 border-rose-100">
-                        {dre.productBreakdown.slice(0, 5).map((item, idx) => (
-                          <div key={idx} className="flex justify-between text-[10px] font-bold uppercase text-slate-400">
-                            <span>{item.qty}x {item.name}</span>
-                            <span>{settings.currency} {item.cost.toLocaleString()}</span>
+                      
+                      {dre.productionCost > 1000 && (
+                        <div className="bg-rose-500/5 border border-rose-500/20 rounded-2xl p-4 space-y-3">
+                          <div className="flex items-center gap-2 text-rose-600 text-[10px] font-black uppercase tracking-wider">
+                            <AlertTriangle size={14} /> Auditoria de Custos (Por que está alto?)
                           </div>
-                        ))}
-                        {dre.productBreakdown.length > 5 && <p className="text-[9px] text-slate-300 italic">...e outros produtos</p>}
-                      </div>
+                          <div className="space-y-2">
+                            {dre.productBreakdown.map((item, idx) => (
+                              <div key={idx} className="flex items-center justify-between text-xs border-b border-rose-500/10 pb-2 last:border-0">
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-slate-700">{item.qty}x {item.name}</span>
+                                  <span className="text-[10px] text-muted-foreground">Custo Unitário: {settings.currency} {item.unitCost.toFixed(2)}</span>
+                                </div>
+                                <span className={cn("font-black", item.totalCost > 500 ? "text-rose-600" : "text-slate-500")}>
+                                  {settings.currency} {item.totalCost.toLocaleString()}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-[9px] text-muted-foreground italic">
+                            Dica: Se um custo unitário estiver absurdo, verifique o Peso (g) ou Tempo (min) no cadastro do produto.
+                          </p>
+                        </div>
+                      )}
                     </div>
+
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">(-) Taxas de Canais (ML/Shopee)</span>
                       <span className="font-bold text-rose-500">-{settings.currency} {dre.fees.toLocaleString()}</span>
@@ -234,6 +251,7 @@ const Finance = () => {
                       <span className="font-bold text-rose-500">-{settings.currency} {dre.fixedExpenses.toLocaleString()}</span>
                     </div>
                   </div>
+
                   <div className={cn(
                     "p-6 flex justify-between items-center",
                     dre.netProfit > 0 ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
