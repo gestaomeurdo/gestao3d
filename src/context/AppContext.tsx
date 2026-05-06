@@ -101,6 +101,7 @@ interface AppContextType {
   updateSettings: (settings: Partial<Settings>) => Promise<void>;
   calculateProductCost: (product: Product) => number;
   signOut: () => Promise<void>;
+  refreshData: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -124,7 +125,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const fetchData = async (userId: string) => {
     try {
-      const { data: prof, error: profError } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+      const { data: prof } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
       
       if (prof) {
         setSettings({
@@ -138,11 +139,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       const [
-        { data: fil },
-        { data: prod },
-        { data: sls },
-        { data: exp },
-        { data: prn }
+        { data: fil, error: filErr },
+        { data: prod, error: prodErr },
+        { data: sls, error: slsErr },
+        { data: exp, error: expErr },
+        { data: prn, error: prnErr }
       ] = await Promise.all([
         supabase.from('filaments').select('*').eq('user_id', userId),
         supabase.from('products').select('*').eq('user_id', userId),
@@ -150,6 +151,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         supabase.from('expenses').select('*').eq('user_id', userId),
         supabase.from('printers').select('*').eq('user_id', userId)
       ]);
+
+      if (filErr || prodErr || slsErr || expErr || prnErr) {
+        console.error("Erro ao carregar algumas tabelas. Verifique se o SQL foi executado.");
+      }
 
       if (fil) setFilaments(fil.map(f => ({
         id: f.id, name: f.name, type: f.type as FilamentType,
@@ -185,7 +190,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })));
 
     } catch (error) {
-      console.error("[AppContext] Erro ao carregar dados:", error);
+      console.error("[AppContext] Falha crítica ao carregar dados:", error);
     } finally {
       setLoading(false);
     }
@@ -194,18 +199,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session) {
-        fetchData(session.user.id);
-      } else {
-        setLoading(false);
-      }
+      if (session) fetchData(session.user.id);
+      else setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session) {
-        fetchData(session.user.id);
-      } else {
+      if (session) fetchData(session.user.id);
+      else {
         setFilaments([]);
         setProducts([]);
         setSales([]);
@@ -225,11 +226,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const time = Number(product.printTimeMinutes) || 0;
     const energy = Number(settings.energyCostPerHour) || 0;
     const extra = Number(product.additionalCost) || 0;
-
-    const filamentCost = (weight / 1000) * filamentPrice;
-    const energyCost = (time / 60) * energy;
-    
-    return filamentCost + energyCost + extra;
+    return ((weight / 1000) * filamentPrice) + ((time / 60) * energy) + extra;
   };
 
   const addFilament = async (f: Omit<Filament, 'id' | 'pricePerKg'>) => {
@@ -240,11 +237,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       roll_weight_grams: f.rollWeightGrams, price_per_kg: pricePerKg,
       stock_grams: f.stockGrams, color: f.color, user_id: session.user.id
     }]);
-    
-    if (error) {
-      console.error("[AppContext] Erro ao adicionar filamento:", error);
-      showError("Erro ao salvar filamento. Verifique o banco de dados.");
-    } else {
+    if (error) showError("Erro ao salvar filamento. Tente novamente.");
+    else {
+      showSuccess("Filamento adicionado com sucesso!");
       fetchData(session.user.id);
     }
   };
@@ -257,7 +252,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       color: updated.color,
       price_per_kg: (updated.rollPrice && updated.rollWeightGrams) ? (updated.rollPrice / updated.rollWeightGrams) * 1000 : undefined
     }).eq('id', id);
-    
     if (error) showError("Erro ao atualizar filamento.");
     else fetchData(session.user.id);
   };
@@ -265,42 +259,52 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteFilament = async (id: string) => {
     if (!session) return;
     const { error } = await supabase.from('filaments').delete().eq('id', id);
-    if (error) showError("Erro ao excluir. O filamento pode estar em uso.");
-    else fetchData(session.user.id);
+    if (error) showError("Erro ao excluir. Verifique se ele está em uso em algum produto.");
+    else {
+      showSuccess("Material removido.");
+      fetchData(session.user.id);
+    }
   };
 
   const addProduct = async (p: Omit<Product, 'id'>) => {
     if (!session) return;
     const { error } = await supabase.from('products').insert([{
-      name: p.name, category: p.category, weight_grams: p.weightGrams,
+      name: p.name, category: p.category, weight_grams: p.weight_grams,
       print_time_minutes: p.printTimeMinutes, filament_id: p.filamentId,
       sale_price: p.salePrice, additional_cost: p.additionalCost,
       default_channel: p.defaultChannel, image_url: p.imageUrl,
       user_id: session.user.id
     }]);
-    
     if (error) showError("Erro ao salvar produto.");
-    else fetchData(session.user.id);
+    else {
+      showSuccess("Produto cadastrado!");
+      fetchData(session.user.id);
+    }
   };
 
   const updateProduct = async (id: string, p: Partial<Product>) => {
     if (!session) return;
     const { error } = await supabase.from('products').update({
-      name: p.name, category: p.category, weight_grams: p.weightGrams,
+      name: p.name, category: p.category, weight_grams: p.weight_grams,
       print_time_minutes: p.printTimeMinutes, filament_id: p.filamentId,
       sale_price: p.salePrice, additional_cost: p.additionalCost,
       default_channel: p.defaultChannel, image_url: p.imageUrl
     }).eq('id', id);
-    
     if (error) showError("Erro ao atualizar produto.");
-    else fetchData(session.user.id);
+    else {
+      showSuccess("Produto atualizado.");
+      fetchData(session.user.id);
+    }
   };
 
   const deleteProduct = async (id: string) => {
     if (!session) return;
     const { error } = await supabase.from('products').delete().eq('id', id);
     if (error) showError("Erro ao excluir produto.");
-    else fetchData(session.user.id);
+    else {
+      showSuccess("Produto removido.");
+      fetchData(session.user.id);
+    }
   };
 
   const addSale = async (s: Omit<Sale, 'id'>) => {
@@ -311,9 +315,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       shipping_cost: s.shipping_cost, shipping_paid_by: s.shipping_paid_by,
       user_id: session.user.id, date: s.date
     }]);
-    
     if (error) showError("Erro ao registrar venda.");
-    else fetchData(session.user.id);
+    else {
+      showSuccess("Venda registrada!");
+      fetchData(session.user.id);
+    }
   };
 
   const updateSale = async (id: string, s: Partial<Sale>) => {
@@ -324,16 +330,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       shipping_cost: s.shipping_cost, shipping_paid_by: s.shipping_paid_by,
       date: s.date
     }).eq('id', id);
-    
     if (error) showError("Erro ao atualizar venda.");
-    else fetchData(session.user.id);
+    else {
+      showSuccess("Venda alterada.");
+      fetchData(session.user.id);
+    }
   };
 
   const deleteSale = async (id: string) => {
     if (!session) return;
     const { error } = await supabase.from('sales').delete().eq('id', id);
     if (error) showError("Erro ao excluir venda.");
-    else fetchData(session.user.id);
+    else {
+      showSuccess("Venda removida.");
+      fetchData(session.user.id);
+    }
   };
 
   const addExpense = async (e: Omit<Expense, 'id'>) => {
@@ -343,9 +354,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       description: e.description, is_recurring: e.isRecurring,
       user_id: session.user.id
     }]);
-    
     if (error) showError("Erro ao registrar gasto.");
-    else fetchData(session.user.id);
+    else {
+      showSuccess("Gasto adicionado!");
+      fetchData(session.user.id);
+    }
   };
 
   const updateExpense = async (id: string, e: Partial<Expense>) => {
@@ -354,7 +367,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       category: e.category, amount: e.amount, date: e.date,
       description: e.description, is_recurring: e.isRecurring
     }).eq('id', id);
-    
     if (error) showError("Erro ao atualizar gasto.");
     else fetchData(session.user.id);
   };
@@ -363,7 +375,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!session) return;
     const { error } = await supabase.from('expenses').delete().eq('id', id);
     if (error) showError("Erro ao excluir gasto.");
-    else fetchData(session.user.id);
+    else {
+      showSuccess("Gasto removido.");
+      fetchData(session.user.id);
+    }
   };
 
   const addPrinter = async (p: Omit<Printer, 'id'>) => {
@@ -372,9 +387,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       name: p.name, purchase_price: p.purchasePrice, purchase_date: p.purchaseDate,
       status: p.status, user_id: session.user.id
     }]);
-    
     if (error) showError("Erro ao adicionar impressora.");
-    else fetchData(session.user.id);
+    else {
+      showSuccess("Equipamento cadastrado!");
+      fetchData(session.user.id);
+    }
   };
 
   const updatePrinter = async (id: string, p: Partial<Printer>) => {
@@ -383,7 +400,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       name: p.name, purchase_price: p.purchasePrice, purchase_date: p.purchaseDate,
       status: p.status
     }).eq('id', id);
-    
     if (error) showError("Erro ao atualizar impressora.");
     else fetchData(session.user.id);
   };
@@ -392,7 +408,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!session) return;
     const { error } = await supabase.from('printers').delete().eq('id', id);
     if (error) showError("Erro ao excluir impressora.");
-    else fetchData(session.user.id);
+    else {
+      showSuccess("Equipamento removido.");
+      fetchData(session.user.id);
+    }
   };
 
   const updateSettings = async (s: Partial<Settings>) => {
@@ -407,17 +426,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       monthly_profit_goal: s.monthlyProfitGoal,
       updated_at: new Date().toISOString()
     });
-    
-    if (error) {
-      console.error("[AppContext] Erro ao salvar configurações:", error);
-      showError("Erro ao salvar configurações.");
-    } else {
+    if (error) showError("Erro ao salvar configurações.");
+    else {
+      showSuccess("Configurações salvas!");
       fetchData(session.user.id);
     }
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
+  };
+
+  const refreshData = async () => {
+    if (session) await fetchData(session.user.id);
   };
 
   return (
@@ -428,7 +449,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addExpense, updateExpense, deleteExpense,
       addPrinter, updatePrinter, deletePrinter,
       addFilament, updateFilament, deleteFilament, updateSettings,
-      calculateProductCost, signOut
+      calculateProductCost, signOut, refreshData
     }}>
       {children}
     </AppContext.Provider>
