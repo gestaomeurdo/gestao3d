@@ -151,10 +151,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const calculateProductCost = (product: Product) => {
     const filament = filaments.find(f => f.id === product.filamentId);
-    const filamentPrice = filament ? filament.pricePerKg : 120;
-    const filamentCost = (product.weightGrams / 1000) * filamentPrice;
-    const energyCost = (product.printTimeMinutes / 60) * settings.energyCostPerHour;
-    return filamentCost + energyCost + (product.additionalCost || 0);
+    const filamentPrice = filament ? Number(filament.pricePerKg) : 120;
+    const weight = Number(product.weightGrams) || 0;
+    const time = Number(product.printTimeMinutes) || 0;
+    const energy = Number(settings.energyCostPerHour) || 0;
+    const extra = Number(product.additionalCost) || 0;
+
+    const filamentCost = (weight / 1000) * filamentPrice;
+    const energyCost = (time / 60) * energy;
+    
+    return filamentCost + energyCost + extra;
   };
 
   const addFilament = (filament: Omit<Filament, 'id'>) => setFilaments([...filaments, { ...filament, id: Math.random().toString(36).substr(2, 9) }]);

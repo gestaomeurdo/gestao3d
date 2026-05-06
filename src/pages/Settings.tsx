@@ -142,7 +142,12 @@ const Settings = () => {
               <Label className="text-muted-foreground">Custo Energia (por hora de impressão)</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{settings.currency}</span>
-                <Input type="number" step="0.01" className="pl-10 bg-secondary/50 border-border/50 h-11" value={settings.energyCostPerHour || ''} onChange={e => updateSettings({ energyPerHour: Number(e.target.value) })} />
+                <Input 
+                  type="number" step="0.01" 
+                  className="pl-10 bg-secondary/50 border-border/50 h-11" 
+                  value={settings.energyCostPerHour || ''} 
+                  onChange={e => updateSettings({ energyCostPerHour: Number(e.target.value) })} 
+                />
               </div>
             </div>
           </CardContent>
