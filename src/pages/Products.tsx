@@ -6,7 +6,7 @@ import {
   Plus, Search, Trash2, Package, Clock, Zap, 
   ArrowUpRight, AlertCircle, Info, TrendingUp, 
   DollarSign, Calculator, Layers, ShoppingBag,
-  Target, Percent, HelpCircle, ImageIcon
+  Target, Percent, HelpCircle, ImageIcon, Edit2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,11 +27,12 @@ import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
 
 const Products = () => {
-  const { products, addProduct, deleteProduct, calculateProductCost, settings, filaments } = useApp();
+  const { products, addProduct, updateProduct, deleteProduct, calculateProductCost, settings, filaments } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({
+  const [formData, setFormData] = useState<Omit<Product, 'id'>>({
     name: '',
     category: '',
     weightGrams: 0,
@@ -44,35 +45,63 @@ const Products = () => {
   });
 
   const pricingAnalysis = useMemo(() => {
-    const filament = filaments.find(f => f.id === newProduct.filamentId);
+    const filament = filaments.find(f => f.id === formData.filamentId);
     const filamentPrice = filament ? filament.pricePerKg : 0;
     
-    const filamentCost = (newProduct.weightGrams / 1000) * filamentPrice;
-    const energyCost = (newProduct.printTimeMinutes / 60) * settings.energyCostPerHour;
-    const baseCost = filamentCost + energyCost + (newProduct.additionalCost || 0);
+    const filamentCost = (formData.weightGrams / 1000) * filamentPrice;
+    const energyCost = (formData.printTimeMinutes / 60) * settings.energyCostPerHour;
+    const baseCost = filamentCost + energyCost + (formData.additionalCost || 0);
     
-    const feePercent = settings.channelFees[newProduct.defaultChannel || 'Direto'];
-    const fee = (feePercent / 100) * newProduct.salePrice;
+    const feePercent = settings.channelFees[formData.defaultChannel || 'Direto'];
+    const fee = (feePercent / 100) * formData.salePrice;
     
-    const profit = newProduct.salePrice - baseCost - fee;
-    const margin = newProduct.salePrice > 0 ? (profit / newProduct.salePrice) * 100 : 0;
+    const profit = formData.salePrice - baseCost - fee;
+    const margin = formData.salePrice > 0 ? (profit / formData.salePrice) * 100 : 0;
     
     const suggest30 = (baseCost) / (1 - (feePercent/100) - 0.30);
     const suggest50 = (baseCost) / (1 - (feePercent/100) - 0.50);
 
     return { baseCost, fee, profit, margin, suggest30, suggest50 };
-  }, [newProduct, settings, filaments]);
+  }, [formData, settings, filaments]);
 
-  const handleAddProduct = () => {
-    if (!newProduct.name || !newProduct.filamentId || newProduct.salePrice <= 0) return;
-    addProduct(newProduct);
-    setIsAddDialogOpen(false);
-    setNewProduct({
+  const handleOpenAdd = () => {
+    setEditingId(null);
+    setFormData({
       name: '', category: '', weightGrams: 0, printTimeMinutes: 0, 
       filamentId: filaments[0]?.id || '', salePrice: 0, additionalCost: 0, 
       defaultChannel: 'Direto', imageUrl: ''
     });
-    showSuccess('Produto cadastrado com sucesso!');
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenEdit = (product: Product) => {
+    setEditingId(product.id);
+    setFormData({
+      name: product.name,
+      category: product.category || '',
+      weightGrams: product.weightGrams,
+      printTimeMinutes: product.printTimeMinutes,
+      filamentId: product.filamentId,
+      salePrice: product.salePrice,
+      additionalCost: product.additionalCost || 0,
+      defaultChannel: product.defaultChannel || 'Direto',
+      imageUrl: product.imageUrl || ''
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!formData.name || !formData.filamentId || formData.salePrice <= 0) return;
+    
+    if (editingId) {
+      updateProduct(editingId, formData);
+      showSuccess('Produto atualizado!');
+    } else {
+      addProduct(formData);
+      showSuccess('Produto cadastrado!');
+    }
+    
+    setIsDialogOpen(false);
   };
 
   const filteredProducts = products.filter(p => 
@@ -88,17 +117,21 @@ const Products = () => {
           <p className="text-slate-500 mt-2">Gerencie seus custos e descubra o preço ideal para lucrar mais.</p>
         </div>
         
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-orange-600 hover:bg-orange-700 text-white rounded-2xl h-12 px-8 shadow-lg shadow-orange-600/20 transition-all hover:scale-105">
-              <Plus className="mr-2 h-5 w-5" /> Novo Produto
-            </Button>
-          </DialogTrigger>
+        <Button 
+          onClick={handleOpenAdd}
+          className="bg-orange-600 hover:bg-orange-700 text-white rounded-2xl h-12 px-8 shadow-lg shadow-orange-600/20 transition-all hover:scale-105"
+        >
+          <Plus className="mr-2 h-5 w-5" /> Novo Produto
+        </Button>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="bg-white border-none sm:max-w-[850px] max-h-[90vh] overflow-y-auto custom-scrollbar p-0 rounded-3xl">
             <div className="grid grid-cols-1 lg:grid-cols-5 h-full">
               <div className="lg:col-span-3 p-8 space-y-8">
                 <DialogHeader>
-                  <DialogTitle className="text-2xl font-bold">Configurar Produto</DialogTitle>
+                  <DialogTitle className="text-2xl font-bold">
+                    {editingId ? 'Editar Produto' : 'Configurar Produto'}
+                  </DialogTitle>
                   <DialogDescription>Vincule o material correto para um cálculo de custo preciso.</DialogDescription>
                 </DialogHeader>
 
@@ -106,11 +139,11 @@ const Products = () => {
                   <div className="grid gap-4">
                     <div className="grid gap-2">
                       <Label className="text-xs font-bold uppercase text-slate-400">Nome do Produto</Label>
-                      <Input 
+                      <input 
                         placeholder="Ex: Vaso Decorativo"
-                        className="h-12 rounded-xl border-slate-200" 
-                        value={newProduct.name}
-                        onChange={e => setNewProduct({...newProduct, name: e.target.value})}
+                        className="h-12 rounded-xl border border-slate-200 px-4 focus:outline-none focus:ring-2 focus:ring-orange-500/20" 
+                        value={formData.name}
+                        onChange={e => setFormData({...formData, name: e.target.value})}
                       />
                     </div>
                     
@@ -118,18 +151,18 @@ const Products = () => {
                       <Label className="text-xs font-bold uppercase text-slate-400 flex items-center gap-2">
                         <ImageIcon size={14} /> Link da Foto (URL)
                       </Label>
-                      <Input 
+                      <input 
                         placeholder="https://exemplo.com/foto.jpg"
-                        className="h-12 rounded-xl border-slate-200" 
-                        value={newProduct.imageUrl}
-                        onChange={e => setNewProduct({...newProduct, imageUrl: e.target.value})}
+                        className="h-12 rounded-xl border border-slate-200 px-4 focus:outline-none focus:ring-2 focus:ring-orange-500/20" 
+                        value={formData.imageUrl}
+                        onChange={e => setFormData({...formData, imageUrl: e.target.value})}
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label className="text-xs font-bold uppercase text-slate-400">Filamento do Estoque</Label>
-                        <Select value={newProduct.filamentId} onValueChange={(v) => setNewProduct({...newProduct, filamentId: v})}>
+                        <Select value={formData.filamentId} onValueChange={(v) => setFormData({...formData, filamentId: v})}>
                           <SelectTrigger className="h-12 rounded-xl border-slate-200">
                             <SelectValue placeholder="Selecione o material" />
                           </SelectTrigger>
@@ -142,7 +175,7 @@ const Products = () => {
                       </div>
                       <div className="grid gap-2">
                         <Label className="text-xs font-bold uppercase text-slate-400">Canal de Venda</Label>
-                        <Select value={newProduct.defaultChannel} onValueChange={(v: SaleChannel) => setNewProduct({...newProduct, defaultChannel: v})}>
+                        <Select value={formData.defaultChannel} onValueChange={(v: SaleChannel) => setFormData({...formData, defaultChannel: v})}>
                           <SelectTrigger className="h-12 rounded-xl border-slate-200"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Mercado Livre">Mercado Livre</SelectItem>
@@ -160,22 +193,22 @@ const Products = () => {
                       <Label className="text-xs font-bold uppercase text-slate-400 flex items-center gap-1">
                         <Layers size={14} /> Peso (g)
                       </Label>
-                      <Input 
+                      <input 
                         type="number" step="0.1"
-                        className="h-12 rounded-xl border-slate-200" 
-                        value={newProduct.weightGrams || ''}
-                        onChange={e => setNewProduct({...newProduct, weightGrams: Number(e.target.value)})}
+                        className="h-12 rounded-xl border border-slate-200 px-4 focus:outline-none focus:ring-2 focus:ring-orange-500/20" 
+                        value={formData.weightGrams || ''}
+                        onChange={e => setFormData({...formData, weightGrams: Number(e.target.value)})}
                       />
                     </div>
                     <div className="grid gap-2">
                       <Label className="text-xs font-bold uppercase text-slate-400 flex items-center gap-1">
                         <Clock size={14} /> Tempo (min)
                       </Label>
-                      <Input 
+                      <input 
                         type="number"
-                        className="h-12 rounded-xl border-slate-200" 
-                        value={newProduct.printTimeMinutes || ''}
-                        onChange={e => setNewProduct({...newProduct, printTimeMinutes: Number(e.target.value)})}
+                        className="h-12 rounded-xl border border-slate-200 px-4 focus:outline-none focus:ring-2 focus:ring-orange-500/20" 
+                        value={formData.printTimeMinutes || ''}
+                        onChange={e => setFormData({...formData, printTimeMinutes: Number(e.target.value)})}
                       />
                     </div>
                   </div>
@@ -186,19 +219,21 @@ const Products = () => {
                     </Label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">{settings.currency}</span>
-                      <Input 
+                      <input 
                         type="number" step="0.01"
-                        className="h-14 pl-12 rounded-xl border-orange-200 text-xl font-bold" 
-                        value={newProduct.salePrice || ''}
-                        onChange={e => setNewProduct({...newProduct, salePrice: Number(e.target.value)})}
+                        className="h-14 pl-12 w-full rounded-xl border border-orange-200 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/20" 
+                        value={formData.salePrice || ''}
+                        onChange={e => setFormData({...formData, salePrice: Number(e.target.value)})}
                       />
                     </div>
                   </div>
                 </div>
                 
                 <DialogFooter>
-                  <Button variant="ghost" onClick={() => setIsAddDialogOpen(false)}>Cancelar</Button>
-                  <Button className="bg-slate-900 text-white px-8 rounded-xl h-12" onClick={handleAddProduct}>Salvar</Button>
+                  <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                  <Button className="bg-slate-900 text-white px-8 rounded-xl h-12" onClick={handleSave}>
+                    {editingId ? 'Atualizar' : 'Salvar'}
+                  </Button>
                 </DialogFooter>
               </div>
 
@@ -277,13 +312,22 @@ const Products = () => {
                       {filament?.name || 'Material'}
                     </Badge>
                   </div>
-                  <Button 
-                    variant="ghost" size="icon" 
-                    className="absolute top-4 right-4 h-8 w-8 rounded-lg bg-white/80 backdrop-blur-md hover:bg-rose-50 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => deleteProduct(product.id)}
-                  >
-                    <Trash2 size={16} />
-                  </Button>
+                  <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button 
+                      variant="ghost" size="icon" 
+                      className="h-8 w-8 rounded-lg bg-white/80 backdrop-blur-md hover:bg-blue-50 hover:text-blue-600"
+                      onClick={() => handleOpenEdit(product)}
+                    >
+                      <Edit2 size={14} />
+                    </Button>
+                    <Button 
+                      variant="ghost" size="icon" 
+                      className="h-8 w-8 rounded-lg bg-white/80 backdrop-blur-md hover:bg-rose-50 hover:text-rose-600"
+                      onClick={() => deleteProduct(product.id)}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="p-6 space-y-4">

@@ -80,9 +80,13 @@ interface AppContextType {
   updateProduct: (id: string, product: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
   addSale: (sale: Omit<Sale, 'id'>) => void;
+  updateSale: (id: string, sale: Partial<Sale>) => void;
+  deleteSale: (id: string) => void;
   addExpense: (expense: Omit<Expense, 'id'>) => void;
+  updateExpense: (id: string, expense: Partial<Expense>) => void;
   deleteExpense: (id: string) => void;
   addPrinter: (printer: Omit<Printer, 'id'>) => void;
+  updatePrinter: (id: string, printer: Partial<Printer>) => void;
   deletePrinter: (id: string) => void;
   addFilament: (filament: Omit<Filament, 'id'>) => void;
   updateFilament: (id: string, filament: Partial<Filament>) => void;
@@ -136,7 +140,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   });
 
-  // Efeito para salvar sempre que qualquer estado mudar
   useEffect(() => {
     localStorage.setItem('printsaas_filaments', JSON.stringify(filaments));
     localStorage.setItem('printsaas_products', JSON.stringify(products));
@@ -162,30 +165,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateProduct = (id: string, updated: Partial<Product>) => setProducts(products.map(p => p.id === id ? { ...p, ...updated } : p));
   const deleteProduct = (id: string) => setProducts(products.filter(p => p.id !== id));
   
-  const addSale = (sale: Omit<Sale, 'id'>) => {
-    const newSale = { ...sale, id: Math.random().toString(36).substr(2, 9) };
-    setSales([...sales, newSale]);
-
-    const product = products.find(p => p.id === sale.productId);
-    if (product && product.filamentId) {
-      const totalWeight = product.weightGrams * sale.quantity;
-      setFilaments(prev => prev.map(f => 
-        f.id === product.filamentId 
-          ? { ...f, stockGrams: Math.max(0, f.stockGrams - totalWeight) } 
-          : f
-      ));
-    }
-  };
+  const addSale = (sale: Omit<Sale, 'id'>) => setSales([...sales, { ...sale, id: Math.random().toString(36).substr(2, 9) }]);
+  const updateSale = (id: string, updated: Partial<Sale>) => setSales(sales.map(s => s.id === id ? { ...s, ...updated } : s));
+  const deleteSale = (id: string) => setSales(sales.filter(s => s.id !== id));
   
   const addExpense = (expense: Omit<Expense, 'id'>) => setExpenses([...expenses, { ...expense, id: Math.random().toString(36).substr(2, 9) }]);
+  const updateExpense = (id: string, updated: Partial<Expense>) => setExpenses(expenses.map(e => e.id === id ? { ...e, ...updated } : e));
   const deleteExpense = (id: string) => setExpenses(expenses.filter(e => e.id !== id));
   
   const addPrinter = (printer: Omit<Printer, 'id'>) => setPrinters([...printers, { ...printer, id: Math.random().toString(36).substr(2, 9) }]);
+  const updatePrinter = (id: string, updated: Partial<Printer>) => setPrinters(printers.map(p => p.id === id ? { ...p, ...updated } : p));
   const deletePrinter = (id: string) => setPrinters(printers.filter(p => p.id !== id));
 
-  const updateSettings = (newSettings: Partial<Settings>) => {
-    setSettings(prev => ({ ...prev, ...newSettings }));
-  };
+  const updateSettings = (newSettings: Partial<Settings>) => setSettings(prev => ({ ...prev, ...newSettings }));
 
   const importAllData = (data: any) => {
     if (data.filaments) setFilaments(data.filaments);
@@ -200,7 +192,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     <AppContext.Provider value={{ 
       products, sales, expenses, printers, filaments, settings, 
       addProduct, updateProduct, deleteProduct, 
-      addSale, addExpense, deleteExpense, addPrinter, deletePrinter,
+      addSale, updateSale, deleteSale,
+      addExpense, updateExpense, deleteExpense,
+      addPrinter, updatePrinter, deletePrinter,
       addFilament, updateFilament, deleteFilament, updateSettings,
       calculateProductCost, importAllData
     }}>
