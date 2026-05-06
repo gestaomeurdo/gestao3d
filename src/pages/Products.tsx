@@ -45,7 +45,6 @@ const Products = () => {
     imageUrl: ''
   });
 
-  // Cálculos em tempo real para o formulário
   const currentFormCost = useMemo(() => {
     const filamentCost = (newProduct.weightGrams / 1000) * settings.filamentPricePerKg;
     const energyCost = (newProduct.printTimeMinutes / 60) * settings.energyCostPerHour;
@@ -91,7 +90,6 @@ const Products = () => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-4xl font-bold tracking-tight">Catálogo de Produtos</h1>
@@ -111,7 +109,6 @@ const Products = () => {
             </DialogHeader>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
-              {/* COLUNA 1: DADOS */}
               <div className="space-y-6">
                 <div className="space-y-4">
                   <h3 className="text-sm font-bold uppercase tracking-widest text-primary flex items-center gap-2">
@@ -121,7 +118,7 @@ const Products = () => {
                     <Label>Nome do Produto</Label>
                     <Input 
                       placeholder="Ex: Vaso Articulado"
-                      className="bg-secondary/50 border-border/50" 
+                      className="bg-secondary/50 border-border/50 h-11" 
                       value={newProduct.name}
                       onChange={e => setNewProduct({...newProduct, name: e.target.value})}
                     />
@@ -131,7 +128,7 @@ const Products = () => {
                       <Label>Categoria</Label>
                       <Input 
                         placeholder="Decoração"
-                        className="bg-secondary/50 border-border/50" 
+                        className="bg-secondary/50 border-border/50 h-11" 
                         value={newProduct.category}
                         onChange={e => setNewProduct({...newProduct, category: e.target.value})}
                       />
@@ -142,7 +139,7 @@ const Products = () => {
                         value={newProduct.filamentType} 
                         onValueChange={(v: FilamentType) => setNewProduct({...newProduct, filamentType: v})}
                       >
-                        <SelectTrigger className="bg-secondary/50 border-border/50">
+                        <SelectTrigger className="bg-secondary/50 border-border/50 h-11">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -165,8 +162,10 @@ const Products = () => {
                       <Label>Peso (gramas)</Label>
                       <Input 
                         type="number" 
-                        className="bg-secondary/50 border-border/50" 
-                        value={newProduct.weightGrams}
+                        step="0.1"
+                        inputMode="decimal"
+                        className="bg-secondary/50 border-border/50 h-11" 
+                        value={newProduct.weightGrams || ''}
                         onChange={e => setNewProduct({...newProduct, weightGrams: Number(e.target.value)})}
                       />
                     </div>
@@ -174,8 +173,8 @@ const Products = () => {
                       <Label>Tempo (minutos)</Label>
                       <Input 
                         type="number" 
-                        className="bg-secondary/50 border-border/50" 
-                        value={newProduct.printTimeMinutes}
+                        className="bg-secondary/50 border-border/50 h-11" 
+                        value={newProduct.printTimeMinutes || ''}
                         onChange={e => setNewProduct({...newProduct, printTimeMinutes: Number(e.target.value)})}
                       />
                     </div>
@@ -189,12 +188,17 @@ const Products = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label>Preço de Venda</Label>
-                      <Input 
-                        type="number" 
-                        className="bg-secondary/50 border-border/50" 
-                        value={newProduct.salePrice}
-                        onChange={e => setNewProduct({...newProduct, salePrice: Number(e.target.value)})}
-                      />
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{settings.currency}</span>
+                        <Input 
+                          type="number" 
+                          step="0.01"
+                          inputMode="decimal"
+                          className="pl-10 bg-secondary/50 border-border/50 h-11" 
+                          value={newProduct.salePrice || ''}
+                          onChange={e => setNewProduct({...newProduct, salePrice: Number(e.target.value)})}
+                        />
+                      </div>
                     </div>
                     <div className="grid gap-2">
                       <Label>Canal Padrão</Label>
@@ -202,7 +206,7 @@ const Products = () => {
                         value={newProduct.defaultChannel} 
                         onValueChange={(v: SaleChannel) => setNewProduct({...newProduct, defaultChannel: v})}
                       >
-                        <SelectTrigger className="bg-secondary/50 border-border/50">
+                        <SelectTrigger className="bg-secondary/50 border-border/50 h-11">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -217,7 +221,6 @@ const Products = () => {
                 </div>
               </div>
 
-              {/* COLUNA 2: RESULTADOS EM TEMPO REAL */}
               <div className="bg-secondary/30 rounded-3xl p-6 space-y-6 border border-border/50">
                 <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground text-center">Análise de Lucratividade</h3>
                 
@@ -258,15 +261,6 @@ const Products = () => {
                     </p>
                   </div>
                 )}
-
-                {printers.length > 0 && currentFormProfit > 0 && (
-                  <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center gap-3">
-                    <TrendingUp className="text-blue-500" size={18} />
-                    <p className="text-xs text-blue-500 font-medium">
-                      Este produto paga uma <strong>{printers[0].name}</strong> em apenas <strong>{Math.ceil(printers[0].purchasePrice / currentFormProfit)}</strong> unidades vendidas.
-                    </p>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -278,7 +272,6 @@ const Products = () => {
         </Dialog>
       </div>
 
-      {/* FILTROS E BUSCA */}
       <div className="flex flex-col md:flex-row gap-4 items-center">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
@@ -289,17 +282,8 @@ const Products = () => {
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
-          <Button variant="outline" className="rounded-xl border-border/50 h-12 gap-2 flex-1 md:flex-none">
-            <Layers size={18} /> Filamento
-          </Button>
-          <Button variant="outline" className="rounded-xl border-border/50 h-12 gap-2 flex-1 md:flex-none">
-            <TrendingUp size={18} /> Ordenar
-          </Button>
-        </div>
       </div>
 
-      {/* LISTAGEM DE PRODUTOS */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredProducts.map((product) => {
           const cost = calculateProductCost(product);
@@ -311,7 +295,6 @@ const Products = () => {
           return (
             <Card key={product.id} className="glass-card group hover:border-primary/30 transition-all duration-300 overflow-hidden rounded-3xl">
               <CardContent className="p-0">
-                {/* Top Visual */}
                 <div className="h-40 bg-secondary/30 relative flex items-center justify-center overflow-hidden">
                   <div className="absolute inset-0 orange-gradient opacity-0 group-hover:opacity-5 transition-opacity" />
                   <Package size={64} className="text-muted-foreground/20 group-hover:text-primary/20 transition-colors" />
@@ -344,7 +327,6 @@ const Products = () => {
                     </div>
                   </div>
 
-                  {/* Financeiro */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-3 rounded-2xl bg-secondary/30 border border-border/50">
                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Custo Total</p>
@@ -356,7 +338,6 @@ const Products = () => {
                     </div>
                   </div>
 
-                  {/* Lucro e Margem */}
                   <div className="flex items-end justify-between pt-2">
                     <div>
                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Lucro Líquido</p>
@@ -374,80 +355,12 @@ const Products = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* ROI Progress Bar */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground">
-                      <span>Saúde do Produto</span>
-                      <span className={getMarginColor(margin)}>{margin >= 50 ? 'Excelente' : margin >= 30 ? 'Médio' : 'Crítico'}</span>
-                    </div>
-                    <div className="h-2 w-full bg-secondary/50 rounded-full overflow-hidden">
-                      <div 
-                        className={cn("h-full transition-all duration-1000", getMarginBg(margin))} 
-                        style={{ width: `${Math.min(margin, 100)}%` }} 
-                      />
-                    </div>
-                  </div>
                 </div>
               </CardContent>
             </Card>
           );
         })}
       </div>
-
-      {/* SIMULADOR INTELIGENTE (FIXO NO RODAPÉ OU SEÇÃO FINAL) */}
-      {products.length > 0 && (
-        <Card className="glass-card border-primary/20 bg-primary/5 rounded-3xl overflow-hidden">
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <Calculator className="text-primary" size={20} />
-              <CardTitle className="text-lg">Simulador de Escala</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6 pt-0">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <Label className="font-bold">Se eu vender:</Label>
-                  <span className="text-2xl font-black text-primary">{simulationQty} unidades</span>
-                </div>
-                <Slider 
-                  value={[simulationQty]} 
-                  onValueChange={(v) => setSimulationQty(v[0])} 
-                  max={100} 
-                  step={1} 
-                  className="py-4"
-                />
-              </div>
-
-              <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-background/50 p-4 rounded-2xl border border-border/50">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Receita Total</p>
-                  <p className="text-xl font-black mt-1">
-                    {settings.currency} {(products.reduce((acc, p) => acc + p.salePrice, 0) / products.length * simulationQty).toFixed(2)}
-                  </p>
-                </div>
-                <div className="bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/20">
-                  <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Lucro Total Estimado</p>
-                  <p className="text-xl font-black text-emerald-500 mt-1">
-                    {settings.currency} {(products.reduce((acc, p) => {
-                      const cost = calculateProductCost(p);
-                      const fee = (settings.channelFees[p.defaultChannel || 'Direto'] / 100) * p.salePrice;
-                      return acc + (p.salePrice - cost - fee);
-                    }, 0) / products.length * simulationQty).toFixed(2)}
-                  </p>
-                </div>
-                <div className="bg-blue-500/10 p-4 rounded-2xl border border-blue-500/20">
-                  <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Tempo de Produção</p>
-                  <p className="text-xl font-black text-blue-500 mt-1">
-                    {Math.floor((products.reduce((acc, p) => acc + p.printTimeMinutes, 0) / products.length * simulationQty) / 60)}h
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };

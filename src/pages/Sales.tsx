@@ -46,7 +46,6 @@ const Sales = () => {
     status: 'pago'
   });
 
-  // Cálculos em tempo real para o modal
   const selectedProduct = useMemo(() => 
     products.find(p => p.id === newSale.productId), 
   [newSale.productId, products]);
@@ -79,7 +78,6 @@ const Sales = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* HEADER E AÇÃO PRINCIPAL */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Vendas</h1>
@@ -124,7 +122,7 @@ const Sales = () => {
                   <Input 
                     type="number" 
                     className="bg-secondary/50 border-border/50 h-12 rounded-xl" 
-                    value={newSale.quantity}
+                    value={newSale.quantity || ''}
                     onChange={e => setNewSale({...newSale, quantity: Number(e.target.value)})}
                   />
                 </div>
@@ -153,6 +151,8 @@ const Sales = () => {
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{settings.currency}</span>
                   <Input 
                     type="number" 
+                    step="0.01"
+                    inputMode="decimal"
                     placeholder={selectedProduct ? selectedProduct.salePrice.toString() : "0.00"}
                     className="pl-10 bg-secondary/50 border-border/50 h-12 rounded-xl" 
                     value={newSale.customPrice || ''}
@@ -161,7 +161,6 @@ const Sales = () => {
                 </div>
               </div>
 
-              {/* FEEDBACK DE LUCRO INSTANTÂNEO */}
               {selectedProduct && (
                 <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-between">
                   <div>
@@ -174,13 +173,6 @@ const Sales = () => {
                   </div>
                 </div>
               )}
-
-              {selectedProduct && (currentSaleProfit / ((newSale.customPrice || selectedProduct.salePrice) * newSale.quantity)) > 0.5 && (
-                <div className="flex items-center gap-2 text-xs text-blue-500 font-bold bg-blue-500/5 p-3 rounded-xl border border-blue-500/10">
-                  <TrendingUp size={14} />
-                  Este produto tem alta margem, promova mais!
-                </div>
-              )}
             </div>
 
             <DialogFooter>
@@ -191,7 +183,6 @@ const Sales = () => {
         </Dialog>
       </div>
 
-      {/* LISTAGEM E FILTROS */}
       <div className="bg-card border border-border/50 rounded-3xl overflow-hidden shadow-sm">
         <div className="p-4 border-b border-border/50 flex flex-col md:flex-row items-center gap-4">
           <div className="relative flex-1 w-full">
@@ -202,14 +193,6 @@ const Sales = () => {
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
-          </div>
-          <div className="flex gap-2 w-full md:w-auto">
-            <Button variant="outline" className="rounded-xl border-border/50 h-10 gap-2 flex-1 md:flex-none">
-              <Calendar size={16} /> Período
-            </Button>
-            <Button variant="outline" className="rounded-xl border-border/50 h-10 gap-2 flex-1 md:flex-none">
-              <Filter size={16} /> Canais
-            </Button>
           </div>
         </div>
 

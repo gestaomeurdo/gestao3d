@@ -29,7 +29,6 @@ const Settings = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Perfil do Usuário */}
         <Card className="glass-card">
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -42,7 +41,7 @@ const Settings = () => {
             <div className="grid gap-2">
               <Label className="text-muted-foreground">Seu Nome</Label>
               <Input 
-                className="bg-secondary/50 border-border/50" 
+                className="bg-secondary/50 border-border/50 h-11" 
                 value={settings.userName}
                 onChange={e => updateSettings({ userName: e.target.value })}
               />
@@ -50,7 +49,6 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {/* Personalização do Sistema */}
         <Card className="glass-card">
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -63,7 +61,7 @@ const Settings = () => {
             <div className="grid gap-2">
               <Label className="text-muted-foreground">Nome do Sistema (Marca)</Label>
               <Input 
-                className="bg-secondary/50 border-border/50" 
+                className="bg-secondary/50 border-border/50 h-11" 
                 value={settings.systemName}
                 onChange={e => updateSettings({ systemName: e.target.value })}
               />
@@ -71,7 +69,6 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {/* Custos Base */}
         <Card className="glass-card">
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -87,8 +84,10 @@ const Settings = () => {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{settings.currency}</span>
                 <Input 
                   type="number" 
-                  className="pl-10 bg-secondary/50 border-border/50" 
-                  value={settings.filamentPricePerKg}
+                  step="0.01"
+                  inputMode="decimal"
+                  className="pl-10 bg-secondary/50 border-border/50 h-11" 
+                  value={settings.filamentPricePerKg || ''}
                   onChange={e => updateSettings({ filamentPricePerKg: Number(e.target.value) })}
                 />
               </div>
@@ -99,8 +98,10 @@ const Settings = () => {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{settings.currency}</span>
                 <Input 
                   type="number" 
-                  className="pl-10 bg-secondary/50 border-border/50" 
-                  value={settings.energyCostPerHour}
+                  step="0.01"
+                  inputMode="decimal"
+                  className="pl-10 bg-secondary/50 border-border/50 h-11" 
+                  value={settings.energyCostPerHour || ''}
                   onChange={e => updateSettings({ energyCostPerHour: Number(e.target.value) })}
                 />
               </div>
@@ -108,7 +109,6 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {/* Taxas de Canais */}
         <Card className="glass-card">
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -125,8 +125,10 @@ const Settings = () => {
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
                   <Input 
                     type="number" 
-                    className="bg-secondary/50 border-border/50 pr-8" 
-                    value={settings.channelFees[channel]}
+                    step="0.1"
+                    inputMode="decimal"
+                    className="bg-secondary/50 border-border/50 pr-8 h-11" 
+                    value={settings.channelFees[channel] || ''}
                     onChange={e => {
                       const newFees = { ...settings.channelFees, [channel]: Number(e.target.value) };
                       updateSettings({ channelFees: newFees });
@@ -135,26 +137,6 @@ const Settings = () => {
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
-
-        {/* Regional */}
-        <Card className="glass-card">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Globe className="text-purple-500" size={20} />
-              <CardTitle>Regional e Moeda</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Símbolo da Moeda</Label>
-              <Input 
-                className="bg-secondary/50 border-border/50" 
-                value={settings.currency}
-                onChange={e => updateSettings({ currency: e.target.value })}
-              />
-            </div>
           </CardContent>
         </Card>
       </div>
