@@ -86,6 +86,7 @@ interface AppContextType {
   deleteFilament: (id: string) => void;
   updateSettings: (settings: Partial<Settings>) => void;
   calculateProductCost: (product: Product) => number;
+  importAllData: (data: any) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -165,13 +166,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateSettings = (newSettings: Partial<Settings>) => setSettings({ ...settings, ...newSettings });
 
+  const importAllData = (data: any) => {
+    if (data.filaments) setFilaments(data.filaments);
+    if (data.products) setProducts(data.products);
+    if (data.sales) setSales(data.sales);
+    if (data.expenses) setExpenses(data.expenses);
+    if (data.printers) setPrinters(data.printers);
+    if (data.settings) setSettings(data.settings);
+  };
+
   return (
     <AppContext.Provider value={{ 
       products, sales, expenses, printers, filaments, settings, 
       addProduct, updateProduct, deleteProduct, 
       addSale, addExpense, deleteExpense, addPrinter, deletePrinter,
       addFilament, deleteFilament, updateSettings,
-      calculateProductCost
+      calculateProductCost, importAllData
     }}>
       {children}
     </AppContext.Provider>
