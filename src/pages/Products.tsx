@@ -17,18 +17,17 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogTrigger,
+  DialogTrigger, 
   DialogFooter,
   DialogDescription
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { showSuccess } from '@/utils/toast';
 
 const Products = () => {
-  const { products, addProduct, deleteProduct, calculateProductCost, settings } = useApp();
+  const { products, addProduct, deleteProduct, calculateProductCost, settings, filaments } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
@@ -37,17 +36,18 @@ const Products = () => {
     category: '',
     weightGrams: 0,
     printTimeMinutes: 0,
-    filamentType: 'PLA',
-    color: '',
+    filamentId: filaments[0]?.id || '',
     salePrice: 0,
     additionalCost: 0,
     defaultChannel: 'Direto',
     imageUrl: ''
   });
 
-  // --- CÁLCULOS DE APOIO À PRECIFICAÇÃO ---
   const pricingAnalysis = useMemo(() => {
-    const filamentCost = (newProduct.weightGrams / 1000) * settings.filamentPricePerKg;
+    const filament = filaments.find(f => f.id === newProduct.filamentId);
+    const filamentPrice = filament ? filament.pricePerKg : 0;
+    
+    const filamentCost = (newProduct.weightGrams / 1000) * filamentPrice;
     const energyCost = (newProduct.printTimeMinutes / 60) * settings.energyCostPerHour;
     const baseCost = filamentCost + energyCost + (newProduct.additionalCost || 0);
     
@@ -57,21 +57,19 @@ const Products = () => {
     const profit = newProduct.salePrice - baseCost - fee;
     const margin = newProduct.salePrice > 0 ? (profit / newProduct.salePrice) * 100 : 0;
     
-    // Sugestões de Preço
     const suggest30 = (baseCost) / (1 - (feePercent/100) - 0.30);
     const suggest50 = (baseCost) / (1 - (feePercent/100) - 0.50);
-    const suggest100 = (baseCost) / (1 - (feePercent/100) - 0.70); // Margem de 70% (Markup alto)
 
-    return { baseCost, fee, profit, margin, suggest30, suggest50, suggest100 };
-  }, [newProduct, settings]);
+    return { baseCost, fee, profit, margin, suggest30, suggest50 };
+  }, [newProduct, settings, filaments]);
 
   const handleAddProduct = () => {
-    if (!newProduct.name || newProduct.salePrice <= 0) return;
+    if (!newProduct.name || !newProduct.filamentId || newProduct.salePrice <= 0) return;
     addProduct(newProduct);
     setIsAddDialogOpen(false);
     setNewProduct({
       name: '', category: '', weightGrams: 0, printTimeMinutes: 0, 
-      filamentType: 'PLA', color: '', salePrice: 0, additionalCost: 0, 
+      filamentId: filaments[0]?.id || '', salePrice: 0, additionalCost: 0, 
       defaultChannel: 'Direto', imageUrl: ''
     });
     showSuccess('Produto cadastrado com sucesso!');
@@ -98,11 +96,10 @@ const Products = () => {
           </DialogTrigger>
           <DialogContent className="bg-white border-none sm:max-w-[850px] max-h-[90vh] overflow-y-auto custom-scrollbar p-0 rounded-3xl">
             <div className="grid grid-cols-1 lg:grid-cols-5 h-full">
-              {/* LADO ESQUERDO: FORMULÁRIO */}
               <div className="lg:col-span-3 p-8 space-y-8">
                 <DialogHeader>
                   <DialogTitle className="text-2xl font-bold">Configurar Produto</DialogTitle>
-                  <DialogDescription>Insira os dados técnicos para calcular o custo real.</DialogDescription>
+                  <DialogDescription>Vincule o material correto para um cálculo de custo preciso.</DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-6">
@@ -110,22 +107,23 @@ const Products = () => {
                     <div className="grid gap-2">
                       <Label className="text-xs font-bold uppercase text-slate-400">Nome do Produto</Label>
                       <Input 
-                        placeholder="Ex: Vaso Decorativo Minimalista"
-                        className="h-12 rounded-xl border-slate-200 focus:ring-orange-500" 
+                        placeholder="Ex: Vaso Decorativo"
+                        className="h-12 rounded-xl border-slate-200" 
                         value={newProduct.name}
                         onChange={e => setNewProduct({...newProduct, name: e.target.value})}
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
-                        <Label className="text-xs font-bold uppercase text-slate-400">Material</Label>
-                        <Select value={newProduct.filamentType} onValueChange={(v: FilamentType) => setNewProduct({...newProduct, filamentType: v})}>
-                          <SelectTrigger className="h-12 rounded-xl border-slate-200"><SelectValue /></SelectTrigger>
+                        <Label className="text-xs font-bold uppercase text-slate-400">Filamento do Estoque</Label>
+                        <Select value={newProduct.filamentId} onValueChange={(v) => setNewProduct({...newProduct, filamentId: v})}>
+                          <SelectTrigger className="h-12 rounded-xl border-slate-200">
+                            <SelectValue placeholder="Selecione o material" />
+                          </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="PLA">PLA</SelectItem>
-                            <SelectItem value="PETG">PETG</SelectItem>
-                            <SelectItem value="ABS">ABS</SelectItem>
-                            <SelectItem value="Resina">Resina</SelectItem>
+                            {filaments.map(f => (
+                              <SelectItem key={f.id} value={f.id}>{f.name} ({f.type})</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -150,7 +148,7 @@ const Products = () => {
                         <Layers size={14} /> Peso (g)
                       </Label>
                       <Input 
-                        type="number" step="0.1" inputMode="decimal"
+                        type="number" step="0.1"
                         className="h-12 rounded-xl border-slate-200" 
                         value={newProduct.weightGrams || ''}
                         onChange={e => setNewProduct({...newProduct, weightGrams: Number(e.target.value)})}
@@ -171,13 +169,13 @@ const Products = () => {
 
                   <div className="grid gap-2">
                     <Label className="text-xs font-bold uppercase text-orange-600 flex items-center gap-1">
-                      <DollarSign size={14} /> Seu Preço de Venda
+                      <DollarSign size={14} /> Preço de Venda
                     </Label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">{settings.currency}</span>
                       <Input 
-                        type="number" step="0.01" inputMode="decimal"
-                        className="h-14 pl-12 rounded-xl border-orange-200 focus:ring-orange-500 text-xl font-bold" 
+                        type="number" step="0.01"
+                        className="h-14 pl-12 rounded-xl border-orange-200 text-xl font-bold" 
                         value={newProduct.salePrice || ''}
                         onChange={e => setNewProduct({...newProduct, salePrice: Number(e.target.value)})}
                       />
@@ -185,17 +183,16 @@ const Products = () => {
                   </div>
                 </div>
                 
-                <DialogFooter className="pt-4">
-                  <Button variant="ghost" onClick={() => setIsAddDialogOpen(false)} className="rounded-xl">Cancelar</Button>
-                  <Button className="bg-slate-900 text-white px-8 rounded-xl h-12" onClick={handleAddProduct}>Salvar Produto</Button>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setIsAddDialogOpen(false)}>Cancelar</Button>
+                  <Button className="bg-slate-900 text-white px-8 rounded-xl h-12" onClick={handleAddProduct}>Salvar</Button>
                 </DialogFooter>
               </div>
 
-              {/* LADO DIREITO: GUIA DE PRECIFICAÇÃO */}
               <div className="lg:col-span-2 bg-slate-900 p-8 text-white space-y-8">
                 <div className="space-y-2">
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-orange-400">Guia de Lucro</h3>
-                  <p className="text-xs text-slate-400">Análise baseada nos seus custos de filamento e energia.</p>
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-orange-400">Análise de Custo Real</h3>
+                  <p className="text-xs text-slate-400">Baseado no filamento selecionado.</p>
                 </div>
 
                 <div className="space-y-6">
@@ -209,7 +206,7 @@ const Products = () => {
                     </h2>
                     <Badge className={cn(
                       "mt-3 border-none",
-                      pricingAnalysis.margin > 40 ? "bg-emerald-500" : pricingAnalysis.margin > 20 ? "bg-orange-500" : "bg-rose-500"
+                      pricingAnalysis.margin > 40 ? "bg-emerald-500" : "bg-orange-500"
                     )}>
                       {pricingAnalysis.margin.toFixed(1)}% de Margem
                     </Badge>
@@ -219,25 +216,14 @@ const Products = () => {
                     <h4 className="text-xs font-bold uppercase text-slate-400">Sugestões de Preço</h4>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
-                        <span className="text-xs">Margem 30% (Mínima)</span>
+                        <span className="text-xs">Margem 30%</span>
                         <span className="font-bold text-orange-400">{settings.currency} {pricingAnalysis.suggest30.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
-                        <span className="text-xs font-bold">Margem 50% (Ideal)</span>
+                        <span className="text-xs font-bold">Margem 50%</span>
                         <span className="font-bold text-emerald-400">{settings.currency} {pricingAnalysis.suggest50.toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
-                        <span className="text-xs">Margem 70% (Premium)</span>
-                        <span className="font-bold text-purple-400">{settings.currency} {pricingAnalysis.suggest100.toFixed(2)}</span>
-                      </div>
                     </div>
-                  </div>
-
-                  <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex gap-3">
-                    <Info className="text-blue-400 shrink-0" size={18} />
-                    <p className="text-[10px] text-blue-100 leading-relaxed">
-                      <strong>Dica:</strong> Em impressão 3D, o tempo de máquina é seu recurso mais caro. Tente manter um lucro de pelo menos {settings.currency} 10,00 por hora de impressão.
-                    </p>
                   </div>
                 </div>
               </div>
@@ -246,73 +232,65 @@ const Products = () => {
         </Dialog>
       </div>
 
-      {/* BUSCA */}
       <div className="relative max-w-md">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
         <Input 
           placeholder="Pesquisar produto..." 
-          className="pl-12 h-12 rounded-2xl border-slate-200 bg-white shadow-sm focus:ring-orange-500"
+          className="pl-12 h-12 rounded-2xl border-slate-200 bg-white shadow-sm"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />
       </div>
 
-      {/* GRID DE PRODUTOS */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredProducts.map((product) => {
           const cost = calculateProductCost(product);
+          const filament = filaments.find(f => f.id === product.filamentId);
           const fee = (settings.channelFees[product.defaultChannel || 'Direto'] / 100) * product.salePrice;
           const profit = product.salePrice - cost - fee;
           const margin = (profit / product.salePrice) * 100;
-          const profitPerHour = (profit / (product.printTimeMinutes / 60));
 
           return (
-            <Card key={product.id} className="group bg-white border-slate-200 rounded-3xl overflow-hidden hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 border">
+            <Card key={product.id} className="group bg-white border-slate-200 rounded-3xl overflow-hidden hover:shadow-xl transition-all border">
               <CardContent className="p-0">
-                <div className="h-48 bg-slate-50 relative flex items-center justify-center">
-                  <Package size={64} className="text-slate-200 group-hover:text-orange-200 transition-colors" />
-                  <div className="absolute top-4 left-4 flex gap-2">
-                    <Badge className="bg-white/80 backdrop-blur-md text-slate-900 border-none shadow-sm">{product.filamentType}</Badge>
+                <div className="h-40 bg-slate-50 relative flex items-center justify-center">
+                  <Package size={48} className="text-slate-200" />
+                  <div className="absolute top-4 left-4">
+                    <Badge className="bg-white/80 backdrop-blur-md text-slate-900 border-none shadow-sm">
+                      {filament?.name || 'Material'}
+                    </Badge>
                   </div>
                   <Button 
                     variant="ghost" size="icon" 
-                    className="absolute top-4 right-4 h-9 w-9 rounded-xl hover:bg-rose-50 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-4 right-4 h-8 w-8 rounded-lg hover:bg-rose-50 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => deleteProduct(product.id)}
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={16} />
                   </Button>
                 </div>
 
-                <div className="p-6 space-y-6">
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900 truncate">{product.name}</h3>
-                    <div className="flex items-center gap-4 mt-2">
-                      <span className="flex items-center gap-1 text-xs font-bold text-slate-400 uppercase"><Clock size={14} /> {Math.floor(product.printTimeMinutes/60)}h {product.printTimeMinutes%60}m</span>
-                      <span className="flex items-center gap-1 text-xs font-bold text-slate-400 uppercase"><Layers size={14} /> {product.weightGrams}g</span>
+                <div className="p-6 space-y-4">
+                  <h3 className="text-lg font-bold text-slate-900 truncate">{product.name}</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">Custo</p>
+                      <p className="text-sm font-bold text-slate-900">{settings.currency} {(cost + fee).toFixed(2)}</p>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Custo Total</p>
-                      <p className="text-lg font-bold text-slate-900">{settings.currency} {(cost + fee).toFixed(2)}</p>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100">
+                    <div className="p-3 rounded-xl bg-orange-50 border border-orange-100">
                       <p className="text-[10px] font-bold text-orange-600 uppercase">Venda</p>
-                      <p className="text-lg font-bold text-orange-700">{settings.currency} {product.salePrice.toFixed(2)}</p>
+                      <p className="text-sm font-bold text-orange-700">{settings.currency} {product.salePrice.toFixed(2)}</p>
                     </div>
                   </div>
-
                   <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Lucro Líquido</p>
-                      <p className={cn("text-2xl font-black", profit > 0 ? "text-emerald-500" : "text-rose-500")}>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">Lucro</p>
+                      <p className={cn("text-xl font-black", profit > 0 ? "text-emerald-500" : "text-rose-500")}>
                         {settings.currency} {profit.toFixed(2)}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Lucro/Hora</p>
-                      <p className="text-sm font-bold text-slate-900">{settings.currency} {profitPerHour.toFixed(2)}</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">Margem</p>
+                      <p className="text-sm font-bold text-slate-900">{margin.toFixed(0)}%</p>
                     </div>
                   </div>
                 </div>

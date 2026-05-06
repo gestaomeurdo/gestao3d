@@ -1,19 +1,28 @@
 "use client";
 
-import React from 'react';
-import { useApp, SaleChannel } from '@/context/AppContext';
-import { Save, Globe, Zap, CreditCard, User, Monitor } from 'lucide-react';
+import React, { useState } from 'react';
+import { useApp, SaleChannel, FilamentType } from '@/context/AppContext';
+import { Save, Zap, CreditCard, User, Monitor, Layers, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { showSuccess } from '@/utils/toast';
 
 const Settings = () => {
-  const { settings, updateSettings } = useApp();
+  const { settings, updateSettings, filaments, addFilament, deleteFilament } = useApp();
+  const [newFilament, setNewFilament] = useState({ name: '', type: 'PLA' as FilamentType, pricePerKg: 0 });
 
   const handleSave = () => {
     showSuccess('Configurações salvas com sucesso!');
+  };
+
+  const handleAddFilament = () => {
+    if (!newFilament.name || newFilament.pricePerKg <= 0) return;
+    addFilament(newFilament);
+    setNewFilament({ name: '', type: 'PLA', pricePerKg: 0 });
+    showSuccess('Filamento adicionado ao estoque!');
   };
 
   return (
@@ -21,7 +30,7 @@ const Settings = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
-          <p className="text-muted-foreground mt-1">Ajuste os parâmetros globais de cálculo e perfil.</p>
+          <p className="text-muted-foreground mt-1">Ajuste os parâmetros globais e gerencie seu estoque de materiais.</p>
         </div>
         <Button className="orange-gradient text-white gap-2" onClick={handleSave}>
           <Save size={18} /> Salvar Alterações
@@ -29,42 +38,73 @@ const Settings = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="glass-card">
+        {/* ESTOQUE DE FILAMENTOS */}
+        <Card className="glass-card lg:col-span-2">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <User className="text-primary" size={20} />
-              <CardTitle>Seu Perfil</CardTitle>
+              <Layers className="text-orange-500" size={20} />
+              <CardTitle>Estoque de Filamentos</CardTitle>
             </div>
-            <CardDescription>Como você quer ser chamado no sistema.</CardDescription>
+            <CardDescription>Cadastre seus filamentos com preços diferentes para cálculos precisos.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Seu Nome</Label>
-              <Input 
-                className="bg-secondary/50 border-border/50 h-11" 
-                value={settings.userName}
-                onChange={e => updateSettings({ userName: e.target.value })}
-              />
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end bg-secondary/20 p-4 rounded-2xl border border-border/50">
+              <div className="grid gap-2">
+                <Label>Nome / Marca</Label>
+                <Input 
+                  placeholder="Ex: PLA Premium 3DLab" 
+                  value={newFilament.name}
+                  onChange={e => setNewFilament({...newFilament, name: e.target.value})}
+                  className="bg-background"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Tipo</Label>
+                <Select value={newFilament.type} onValueChange={(v: FilamentType) => setNewFilament({...newFilament, type: v})}>
+                  <SelectTrigger className="bg-background"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PLA">PLA</SelectItem>
+                    <SelectItem value="PETG">PETG</SelectItem>
+                    <SelectItem value="ABS">ABS</SelectItem>
+                    <SelectItem value="Resina">Resina</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>Preço por Kg</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{settings.currency}</span>
+                  <Input 
+                    type="number" 
+                    step="0.01"
+                    className="pl-10 bg-background"
+                    value={newFilament.pricePerKg || ''}
+                    onChange={e => setNewFilament({...newFilament, pricePerKg: Number(e.target.value)})}
+                  />
+                </div>
+              </div>
+              <Button className="orange-gradient text-white" onClick={handleAddFilament}>
+                <Plus size={18} className="mr-2" /> Adicionar
+              </Button>
             </div>
-          </CardContent>
-        </Card>
 
-        <Card className="glass-card">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Monitor className="text-blue-500" size={20} />
-              <CardTitle>Personalização</CardTitle>
-            </div>
-            <CardDescription>Altere o nome da sua marca no sistema.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Nome do Sistema (Marca)</Label>
-              <Input 
-                className="bg-secondary/50 border-border/50 h-11" 
-                value={settings.systemName}
-                onChange={e => updateSettings({ systemName: e.target.value })}
-              />
+            <div className="space-y-2">
+              {filaments.map(f => (
+                <div key={f.id} className="flex items-center justify-between p-4 bg-secondary/10 rounded-xl border border-border/50">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500 font-bold">
+                      {f.type[0]}
+                    </div>
+                    <div>
+                      <p className="font-bold">{f.name}</p>
+                      <p className="text-xs text-muted-foreground">{f.type} • {settings.currency} {f.pricePerKg.toFixed(2)}/kg</p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => deleteFilament(f.id)}>
+                    <Trash2 size={18} />
+                  </Button>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -73,25 +113,11 @@ const Settings = () => {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Zap className="text-yellow-500" size={20} />
-              <CardTitle>Custos Operacionais</CardTitle>
+              <CardTitle>Custos de Energia</CardTitle>
             </div>
-            <CardDescription>Valores base para cálculo de custo de produção.</CardDescription>
+            <CardDescription>Valor base para cálculo de consumo elétrico.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Preço Médio Filamento (por kg)</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{settings.currency}</span>
-                <Input 
-                  type="number" 
-                  step="0.01"
-                  inputMode="decimal"
-                  className="pl-10 bg-secondary/50 border-border/50 h-11" 
-                  value={settings.filamentPricePerKg || ''}
-                  onChange={e => updateSettings({ filamentPricePerKg: Number(e.target.value) })}
-                />
-              </div>
-            </div>
             <div className="grid gap-2">
               <Label className="text-muted-foreground">Custo Energia (por hora de impressão)</Label>
               <div className="relative">
@@ -99,7 +125,6 @@ const Settings = () => {
                 <Input 
                   type="number" 
                   step="0.01"
-                  inputMode="decimal"
                   className="pl-10 bg-secondary/50 border-border/50 h-11" 
                   value={settings.energyCostPerHour || ''}
                   onChange={e => updateSettings({ energyCostPerHour: Number(e.target.value) })}
@@ -113,7 +138,7 @@ const Settings = () => {
           <CardHeader>
             <div className="flex items-center gap-2">
               <CreditCard className="text-orange-500" size={20} />
-              <CardTitle>Taxas de Canais de Venda</CardTitle>
+              <CardTitle>Taxas de Canais</CardTitle>
             </div>
             <CardDescription>Porcentagem cobrada por cada plataforma.</CardDescription>
           </CardHeader>
@@ -126,7 +151,6 @@ const Settings = () => {
                   <Input 
                     type="number" 
                     step="0.1"
-                    inputMode="decimal"
                     className="bg-secondary/50 border-border/50 pr-8 h-11" 
                     value={settings.channelFees[channel] || ''}
                     onChange={e => {
