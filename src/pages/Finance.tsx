@@ -221,26 +221,27 @@ const Finance = () => {
                         <span className="font-black text-rose-500">-{settings.currency} {formatCurrency(dre.productionCost)}</span>
                       </div>
                       
-                      <div className="bg-slate-900 rounded-2xl p-5 space-y-4 border border-white/10">
-                        <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                          <div className="flex items-center gap-2 text-orange-400 text-[10px] font-black uppercase tracking-wider">
+                      {/* AUDITORIA COM DESIGN LEVE */}
+                      <div className="bg-secondary/20 rounded-2xl p-5 space-y-4 border border-border/50">
+                        <div className="flex items-center justify-between border-b border-border/50 pb-3">
+                          <div className="flex items-center gap-2 text-orange-600 text-[10px] font-black uppercase tracking-wider">
                             <AlertTriangle size={14} /> Auditoria de Variáveis
                           </div>
                           <div className="flex gap-4">
-                            <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                              <Zap size={10} className="text-yellow-500" /> Energia: <span className="text-white font-bold">{settings.currency} {formatCurrency(settings.energyCostPerHour)}/h</span>
+                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                              <Zap size={10} className="text-yellow-500" /> Energia: <span className="text-foreground font-bold">{settings.currency} {formatCurrency(settings.energyCostPerHour)}/h</span>
                             </div>
                           </div>
                         </div>
 
                         <div className="space-y-3">
                           {dre.productBreakdown.map((item, idx) => (
-                            <div key={idx} className="space-y-1 border-b border-white/5 pb-2 last:border-0">
+                            <div key={idx} className="space-y-1 border-b border-border/30 pb-2 last:border-0">
                               <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-white">{item.qty}x {item.name}</span>
-                                <span className="text-sm font-black text-rose-400">{settings.currency} {formatCurrency(item.totalCost)}</span>
+                                <span className="text-xs font-bold text-foreground">{item.qty}x {item.name}</span>
+                                <span className="text-sm font-black text-rose-500">{settings.currency} {formatCurrency(item.totalCost)}</span>
                               </div>
-                              <div className="flex gap-3 text-[9px] text-slate-500 font-bold uppercase">
+                              <div className="flex gap-3 text-[9px] text-muted-foreground font-bold uppercase">
                                 <span className="flex items-center gap-1"><Layers size={8} /> {item.filamentName}: {settings.currency} {formatCurrency(item.filamentPrice)}/kg</span>
                                 <span>•</span>
                                 <span>Custo Unitário: {settings.currency} {formatCurrency(item.unitCost)}</span>
