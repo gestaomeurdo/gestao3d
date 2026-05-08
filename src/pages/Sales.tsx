@@ -8,44 +8,26 @@ import {
   CheckCircle2, Clock, Package, ExternalLink,
   AlertCircle, DollarSign, CreditCard, Store,
   Printer as PrinterIcon, Truck, Trash2, Edit2,
-  User
+  User, ChevronRight, Play, Box, Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
 import { 
   Dialog, 
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogTrigger,
   DialogFooter
 } from '@/components/ui/dialog';
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { showSuccess } from '@/utils/toast';
-import { format, startOfMonth, isWithinInterval, endOfMonth } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn, formatCurrency } from '@/lib/utils';
 
 const Sales = () => {
   const { sales, products, printers, addSale, updateSale, deleteSale, settings, calculateProductCost } = useApp();
@@ -58,324 +40,165 @@ const Sales = () => {
     productId: '',
     quantity: 1,
     channel: 'Direto',
-    status: 'pago',
+    status: 'fila',
     printerId: printers[0]?.id || '',
     shippingCost: 0,
     shippingPaidBy: 'cliente',
     customerName: ''
   });
 
-  const stats = useMemo(() => {
-    const now = new Date();
-    const start = startOfMonth(now);
-    const end = endOfMonth(now);
-    
-    const monthSales = sales.filter(s => isWithinInterval(new Date(s.date), { start, end }));
-    
-    let revenue = 0;
-    let profit = 0;
-    
-    monthSales.forEach(s => {
-      const p = products.find(prod => prod.id === s.productId);
-      if (p) {
-        const price = s.customPrice || p.salePrice;
-        const cost = calculateProductCost(p);
-        const fee = (settings.channelFees[s.channel] / 100) * price;
-        const shippingImpact = s.shippingPaidBy === 'vendedor' ? (s.shippingCost || 0) : 0;
-        
-        revenue += price * s.quantity;
-        profit += (price - cost - fee) * s.quantity - shippingImpact;
-      }
-    });
+  const getStatusConfig = (status: SaleStatus) => {
+    switch (status) {
+      case 'fila': return { label: 'Em Fila', color: 'bg-zinc-100 text-zinc-600', icon: Clock };
+      case 'imprimindo': return { label: 'Imprimindo', color: 'bg-orange-100 text-orange-600', icon: Play };
+      case 'acabamento': return { label: 'Acabamento', color: 'bg-blue-100 text-blue-600', icon: Package };
+      case 'pronto': return { label: 'Pronto', color: 'bg-emerald-100 text-emerald-600', icon: Check };
+      case 'enviado': return { label: 'Enviado', color: 'bg-indigo-100 text-indigo-600', icon: Truck };
+      default: return { label: 'Pendente', color: 'bg-slate-100 text-slate-500', icon: AlertCircle };
+    }
+  };
 
-    return { revenue, profit, count: monthSales.length };
-  }, [sales, products, settings, calculateProductCost]);
-
-  const selectedProduct = useMemo(() => 
-    products.find(p => p.id === formData.productId), 
-  [formData.productId, products]);
-
-  const currentSaleProfit = useMemo(() => {
-    if (!selectedProduct) return 0;
-    const unitPrice = formData.customPrice || selectedProduct.salePrice;
-    const totalRevenue = unitPrice * formData.quantity;
-    const totalCost = calculateProductCost(selectedProduct) * formData.quantity;
-    const fee = (settings.channelFees[formData.channel] / 100) * totalRevenue;
-    const shippingImpact = formData.shippingPaidBy === 'vendedor' ? (formData.shippingCost || 0) : 0;
+  const handleStatusChange = async (saleId: string, currentStatus: SaleStatus) => {
+    const statuses: SaleStatus[] = ['fila', 'imprimindo', 'acabamento', 'pronto', 'enviado'];
+    const currentIndex = statuses.indexOf(currentStatus);
+    const nextStatus = statuses[currentIndex + 1];
     
-    return totalRevenue - totalCost - fee - shippingImpact;
-  }, [selectedProduct, formData, settings, calculateProductCost]);
+    if (nextStatus) {
+      await updateSale(saleId, { status: nextStatus });
+      showSuccess(`Pedido movido para: ${getStatusConfig(nextStatus).label}`);
+    }
+  };
 
   const handleOpenAdd = () => {
     setEditingId(null);
     setFormData({ 
-      date: new Date().toISOString(), 
-      productId: '', 
-      quantity: 1, 
-      channel: 'Direto', 
-      status: 'pago',
-      printerId: printers[0]?.id || '',
-      shippingCost: 0,
-      shippingPaidBy: 'cliente',
-      customerName: ''
-    });
-    setIsDialogOpen(true);
-  };
-
-  const handleOpenEdit = (sale: Sale) => {
-    setEditingId(sale.id);
-    setFormData({
-      date: sale.date,
-      productId: sale.productId,
-      quantity: sale.quantity,
-      channel: sale.channel,
-      status: sale.status,
-      customPrice: sale.customPrice,
-      printerId: sale.printerId || printers[0]?.id || '',
-      shippingCost: sale.shippingCost || 0,
-      shippingPaidBy: sale.shippingPaidBy,
-      customerName: sale.customerName || ''
+      date: new Date().toISOString(), productId: '', quantity: 1, channel: 'Direto', 
+      status: 'fila', printerId: printers[0]?.id || '', shippingCost: 0, 
+      shippingPaidBy: 'cliente', customerName: ''
     });
     setIsDialogOpen(true);
   };
 
   const handleSaveSale = () => {
     if (!formData.productId) return;
-    
-    if (editingId) {
-      updateSale(editingId, formData);
-      showSuccess('Venda atualizada!');
-    } else {
-      addSale(formData);
-      showSuccess('Venda registrada e estoque baixado!');
-    }
-    
+    if (editingId) updateSale(editingId, formData);
+    else addSale(formData);
     setIsDialogOpen(false);
   };
 
-  const handleDeleteSale = (id: string) => {
-    deleteSale(id);
-    showSuccess('Venda removida.');
-  };
+  const filteredSales = sales.filter(s => {
+    const p = products.find(prod => prod.id === s.productId);
+    return p?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+           s.customerName?.toLowerCase().includes(searchTerm.toLowerCase());
+  }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight text-slate-900">Vendas</h1>
-          <p className="text-slate-500 mt-2">O estoque é baixado automaticamente ao registrar uma nova venda.</p>
+          <h1 className="text-4xl font-black tracking-tight">Workflow de Vendas</h1>
+          <p className="text-muted-foreground mt-2">Acompanhe o progresso real da sua produção 3D.</p>
         </div>
         
-        <Button 
-          onClick={handleOpenAdd}
-          className="bg-blue-600 hover:bg-blue-700 text-white h-12 px-8 rounded-2xl gap-2 shadow-lg shadow-blue-600/20"
-        >
+        <Button onClick={handleOpenAdd} className="orange-gradient text-white h-12 px-8 rounded-2xl gap-2 shadow-lg shadow-orange-500/20 transition-all hover:scale-105">
           <Plus size={20} /> Registrar Venda
         </Button>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="bg-white border-none sm:max-w-[550px] rounded-3xl p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
+          <DialogContent className="bg-white border-none sm:max-w-[550px] rounded-[2.5rem] p-8">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">
-                {editingId ? 'Editar Venda' : 'Nova Venda'}
-              </DialogTitle>
+              <DialogTitle className="text-2xl font-bold">{editingId ? 'Editar Venda' : 'Nova Venda'}</DialogTitle>
             </DialogHeader>
-            
             <div className="grid gap-6 py-6">
               <div className="grid gap-2">
-                <Label className="text-xs font-bold uppercase text-slate-400">Cliente (Opcional)</Label>
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                  <Input 
-                    placeholder="Nome do cliente"
-                    className="h-12 pl-12 rounded-xl border-slate-200" 
-                    value={formData.customerName}
-                    onChange={e => setFormData({...formData, customerName: e.target.value})}
-                  />
-                </div>
+                <Label className="text-[10px] font-bold uppercase text-slate-400">Cliente</Label>
+                <Input placeholder="Ex: João Silva" value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} className="h-12 rounded-xl" />
               </div>
-
-              <div className="grid gap-2">
-                <Label className="text-xs font-bold uppercase text-slate-400">Produto</Label>
-                <Select 
-                  value={formData.productId} 
-                  onValueChange={(v) => {
-                    const prod = products.find(p => p.id === v);
-                    setFormData({...formData, productId: v, channel: prod?.defaultChannel || 'Direto'});
-                  }}
-                >
-                  <SelectTrigger className="h-12 rounded-xl border-slate-200"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {products.map(p => (
-                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label className="text-xs font-bold uppercase text-slate-400">Quantidade</Label>
-                  <Input 
-                    type="number" className="h-12 rounded-xl border-slate-200" 
-                    value={formData.quantity || ''}
-                    onChange={e => setFormData({...formData, quantity: Number(e.target.value)})}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label className="text-xs font-bold uppercase text-slate-400">Canal</Label>
-                  <Select value={formData.channel} onValueChange={(v: SaleChannel) => setFormData({...formData, channel: v})}>
-                    <SelectTrigger className="h-12 rounded-xl border-slate-200"><SelectValue /></SelectTrigger>
+                  <Label className="text-[10px] font-bold uppercase text-slate-400">Produto</Label>
+                  <Select value={formData.productId} onValueChange={(v) => setFormData({...formData, productId: v})}>
+                    <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Mercado Livre">Mercado Livre</SelectItem>
-                      <SelectItem value="Shopee">Shopee</SelectItem>
-                      <SelectItem value="Direto">Direto</SelectItem>
-                      <SelectItem value="Instagram">Instagram</SelectItem>
+                      {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label className="text-xs font-bold uppercase text-slate-400">Preço Unitário</Label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">{settings.currency}</span>
-                    <Input 
-                      type="number" step="0.01"
-                      className="h-12 pl-12 rounded-xl border-slate-200 font-bold" 
-                      value={formData.customPrice || ''}
-                      onChange={e => setFormData({...formData, customPrice: e.target.value ? Number(e.target.value) : undefined})}
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label className="text-xs font-bold uppercase text-slate-400">Impressora</Label>
-                  <Select value={formData.printerId} onValueChange={(v) => setFormData({...formData, printerId: v})}>
-                    <SelectTrigger className="h-12 rounded-xl border-slate-200"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {printers.map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-[10px] font-bold uppercase text-slate-400">Quantidade</Label>
+                  <Input type="number" value={formData.quantity} onChange={e => setFormData({...formData, quantity: Number(e.target.value)})} className="h-12 rounded-xl" />
                 </div>
               </div>
-
-              {selectedProduct && (
-                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Lucro Líquido Real</p>
-                    <p className="text-3xl font-black text-emerald-600">{settings.currency} {currentSaleProfit.toFixed(2)}</p>
-                    <p className="text-[10px] text-emerald-600 font-medium mt-1">
-                      Material consumido: {(selectedProduct.weightGrams * formData.quantity).toFixed(0)}g
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
-
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setIsDialogOpen(false)} className="rounded-xl">Cancelar</Button>
-              <Button className="bg-blue-600 text-white px-8 rounded-xl h-12" onClick={handleSaveSale}>
-                {editingId ? 'Salvar' : 'Vender e Baixar Estoque'}
-              </Button>
+              <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+              <Button className="bg-slate-900 text-white px-8 h-12 rounded-xl" onClick={handleSaveSale}>Salvar Pedido</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-        <div className="p-6 border-b border-slate-100">
-          <div className="relative max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <Input 
-              placeholder="Buscar por produto ou cliente..." 
-              className="pl-12 h-12 rounded-2xl border-slate-200 bg-slate-50/50"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
+      <div className="relative max-w-md">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+        <Input placeholder="Buscar por cliente ou produto..." className="pl-12 h-12 rounded-2xl border-none bg-white shadow-sm" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+      </div>
 
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-slate-50">
-              <TableRow className="border-slate-100 hover:bg-transparent">
-                <TableHead className="text-[10px] font-bold uppercase text-slate-400 px-6">Data / Cliente</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase text-slate-400">Produto</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase text-slate-400">Canal</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase text-slate-400">Lucro</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase text-slate-400 text-right px-6">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sales
-                .filter(s => {
-                  const p = products.find(prod => prod.id === s.productId);
-                  return p?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         s.customerName?.toLowerCase().includes(searchTerm.toLowerCase());
-                })
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                .map((sale) => {
-                  const product = products.find(p => p.id === sale.productId);
-                  if (!product) return null;
+      <div className="grid grid-cols-1 gap-4">
+        {filteredSales.map((sale) => {
+          const product = products.find(p => p.id === sale.productId);
+          const status = getStatusConfig(sale.status);
+          const StatusIcon = status.icon;
 
-                  const unitPrice = sale.customPrice || product.salePrice;
-                  const totalPrice = unitPrice * sale.quantity;
-                  const cost = calculateProductCost(product) * sale.quantity;
-                  const fee = (settings.channelFees[sale.channel] / 100) * totalPrice;
-                  const shippingImpact = sale.shippingPaidBy === 'vendedor' ? (sale.shippingCost || 0) : 0;
-                  const netProfit = totalPrice - cost - fee - shippingImpact;
+          return (
+            <Card key={sale.id} className="group glass-card border-none rounded-[2rem] overflow-hidden hover:shadow-md transition-all">
+              <CardContent className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-2xl bg-secondary/50 flex items-center justify-center text-slate-400">
+                    <ShoppingBag size={28} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">{product?.name || 'Produto Removido'}</h3>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
+                        <User size={12} /> {sale.customerName || 'Consumidor'}
+                      </span>
+                      <span className="text-slate-300">•</span>
+                      <span className="text-[10px] font-black uppercase text-slate-400">{format(new Date(sale.date), "dd 'de' MMM", { locale: ptBR })}</span>
+                    </div>
+                  </div>
+                </div>
 
-                  return (
-                    <TableRow key={sale.id} className="border-slate-100 hover:bg-slate-50/50 transition-colors">
-                      <TableCell className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-medium text-slate-500">{format(new Date(sale.date), 'dd/MM/yyyy')}</span>
-                          <span className="font-bold text-slate-900">{sale.customerName || 'Consumidor Final'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-slate-900">{product.name}</span>
-                          <span className="text-[10px] text-slate-400 font-bold uppercase">Qtd: {sale.quantity}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="rounded-lg border-slate-200 text-[10px] font-bold uppercase text-slate-500">
-                          {sale.channel}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className={cn("font-black text-sm", netProfit > 0 ? "text-emerald-500" : "text-rose-500")}>
-                          {settings.currency} {netProfit.toFixed(2)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right px-6">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button 
-                            variant="ghost" size="icon" 
-                            className="h-8 w-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50"
-                            onClick={() => handleOpenEdit(sale)}
-                          >
-                            <Edit2 size={14} />
-                          </Button>
-                          <Button 
-                            variant="ghost" size="icon" 
-                            className="h-8 w-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                            onClick={() => handleDeleteSale(sale.id)}
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-            </TableBody>
-          </Table>
-        </div>
+                <div className="flex items-center gap-8">
+                  <div className="text-right">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valor</p>
+                    <p className="text-lg font-black">{settings.currency} {formatCurrency((sale.customPrice || product?.salePrice || 0) * sale.quantity)}</p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Badge className={cn("px-4 py-2 rounded-xl border-none font-bold text-[10px] uppercase tracking-wider flex items-center gap-2", status.color)}>
+                      <StatusIcon size={14} /> {status.label}
+                    </Badge>
+                    
+                    {sale.status !== 'enviado' && (
+                      <Button 
+                        size="icon" 
+                        variant="secondary" 
+                        className="rounded-xl h-10 w-10 hover:bg-orange-500 hover:text-white transition-colors"
+                        onClick={() => handleStatusChange(sale.id, sale.status)}
+                      >
+                        <ChevronRight size={18} />
+                      </Button>
+                    )}
+                  </div>
+
+                  <Button variant="ghost" size="icon" className="text-slate-300 hover:text-rose-500 rounded-xl" onClick={() => deleteSale(sale.id)}>
+                    <Trash2 size={18} />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

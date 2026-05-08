@@ -6,7 +6,7 @@ import { Session } from '@supabase/supabase-js';
 import { showError, showSuccess } from '@/utils/toast';
 
 export type FilamentType = 'PLA' | 'PETG' | 'ABS' | 'Resina' | 'Outro';
-export type SaleStatus = 'pago' | 'enviado' | 'entregue';
+export type SaleStatus = 'fila' | 'imprimindo' | 'acabamento' | 'pronto' | 'enviado';
 export type SaleChannel = 'Mercado Livre' | 'Shopee' | 'Direto' | 'Instagram';
 export type ExpenseCategory = 'filamento' | 'energia' | 'manutenção' | 'equipamentos' | 'marketing' | 'outros';
 export type ShippingPaidBy = 'cliente' | 'vendedor' | 'isento';
@@ -172,7 +172,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (sls) setSales(sls.map(s => ({
         id: s.id, date: s.date, productId: s.product_id,
         quantity: s.quantity, channel: s.channel as SaleChannel,
-        status: s.status as SaleStatus, customPrice: s.custom_price ? Number(s.custom_price) : undefined,
+        status: (s.status as SaleStatus) || 'fila', 
+        customPrice: s.custom_price ? Number(s.custom_price) : undefined,
         printerId: s.printer_id, shippingCost: Number(s.shipping_cost),
         shippingPaidBy: s.shipping_paid_by as ShippingPaidBy,
         customerName: s.customer_name
@@ -267,9 +268,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!session) return;
     const { error } = await supabase.from('products').insert([{
       name: p.name, category: p.category, weight_grams: p.weightGrams,
-      print_time_minutes: p.printTimeMinutes, filament_id: p.filamentId,
-      sale_price: p.salePrice, additional_cost: p.additionalCost,
-      default_channel: p.defaultChannel, image_url: p.imageUrl,
+      print_time_minutes: p.printTimeMinutes, filament_id: p.filament_id,
+      sale_price: p.salePrice, additional_cost: p.additional_cost,
+      default_channel: p.default_channel, image_url: p.imageUrl,
       user_id: session.user.id
     }]);
     if (error) showError("Erro ao salvar produto.");
@@ -279,10 +280,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateProduct = async (id: string, p: Partial<Product>) => {
     if (!session) return;
     const { error } = await supabase.from('products').update({
-      name: p.name, category: p.category, weight_grams: p.weightGrams,
-      print_time_minutes: p.printTimeMinutes, filament_id: p.filamentId,
-      sale_price: p.salePrice, additional_cost: p.additionalCost,
-      default_channel: p.defaultChannel, image_url: p.imageUrl
+      name: p.name, category: p.category, weight_grams: p.weight_grams,
+      print_time_minutes: p.print_time_minutes, filament_id: p.filament_id,
+      sale_price: p.sale_price, additional_cost: p.additional_cost,
+      default_channel: p.default_channel, image_url: p.imageUrl
     }).eq('id', id);
     if (error) showError("Erro ao atualizar produto.");
     else fetchData(session.user.id);
