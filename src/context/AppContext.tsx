@@ -166,7 +166,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         weightGrams: Number(p.weight_grams), printTimeMinutes: Number(p.print_time_minutes),
         filamentId: p.filament_id, salePrice: Number(p.sale_price),
         additionalCost: Number(p.additional_cost), defaultChannel: p.default_channel as SaleChannel,
-        imageUrl: p.imageUrl
+        imageUrl: p.image_url
       })));
 
       if (sls) setSales(sls.map(s => ({
