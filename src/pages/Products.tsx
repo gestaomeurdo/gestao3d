@@ -109,6 +109,10 @@ const Products = () => {
     p.category?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Helpers para lidar com horas e minutos
+  const hours = Math.floor(formData.printTimeMinutes / 60);
+  const minutes = formData.printTimeMinutes % 60;
+
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -132,7 +136,7 @@ const Products = () => {
                   <DialogTitle className="text-2xl font-bold">
                     {editingId ? 'Editar Produto' : 'Configurar Produto'}
                   </DialogTitle>
-                  <DialogDescription>Vincule o material correto para um cálculo de custo preciso.</DialogDescription>
+                  <DialogDescription>Preencha os dados do fatiador para um cálculo de custo preciso.</DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-6">
@@ -174,7 +178,7 @@ const Products = () => {
                         </Select>
                       </div>
                       <div className="grid gap-2">
-                        <Label className="text-xs font-bold uppercase text-slate-400">Canal de Venda</Label>
+                        <Label className="text-xs font-bold uppercase text-slate-400">Canal de Venda Padrão</Label>
                         <Select value={formData.defaultChannel} onValueChange={(v: SaleChannel) => setFormData({...formData, defaultChannel: v})}>
                           <SelectTrigger className="h-12 rounded-xl border-slate-200"><SelectValue /></SelectTrigger>
                           <SelectContent>
@@ -188,10 +192,11 @@ const Products = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6 p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                  {/* SEÇÃO DE CUSTOS DO FATIADOR */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 bg-slate-50 rounded-2xl border border-slate-100">
                     <div className="grid gap-2">
-                      <Label className="text-xs font-bold uppercase text-slate-400 flex items-center gap-1">
-                        <Layers size={14} /> Peso (g)
+                      <Label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1">
+                        <Layers size={12} /> Peso (g)
                       </Label>
                       <input 
                         type="number" step="0.1"
@@ -200,15 +205,39 @@ const Products = () => {
                         onChange={e => setFormData({...formData, weightGrams: Number(e.target.value)})}
                       />
                     </div>
+                    
                     <div className="grid gap-2">
-                      <Label className="text-xs font-bold uppercase text-slate-400 flex items-center gap-1">
-                        <Clock size={14} /> Tempo (min)
+                      <Label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1">
+                        <Clock size={12} /> Horas
                       </Label>
                       <input 
                         type="number"
+                        min="0"
+                        placeholder="0"
                         className="h-12 rounded-xl border border-slate-200 px-4 focus:outline-none focus:ring-2 focus:ring-orange-500/20" 
-                        value={formData.printTimeMinutes || ''}
-                        onChange={e => setFormData({...formData, printTimeMinutes: Number(e.target.value)})}
+                        value={hours || ''}
+                        onChange={e => {
+                          const h = Number(e.target.value);
+                          setFormData({...formData, printTimeMinutes: (h * 60) + minutes});
+                        }}
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1">
+                        <Clock size={12} /> Minutos
+                      </Label>
+                      <input 
+                        type="number"
+                        min="0"
+                        max="59"
+                        placeholder="0"
+                        className="h-12 rounded-xl border border-slate-200 px-4 focus:outline-none focus:ring-2 focus:ring-orange-500/20" 
+                        value={minutes || ''}
+                        onChange={e => {
+                          const m = Math.min(59, Number(e.target.value));
+                          setFormData({...formData, printTimeMinutes: (hours * 60) + m});
+                        }}
                       />
                     </div>
                   </div>
@@ -232,7 +261,7 @@ const Products = () => {
                 <DialogFooter>
                   <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
                   <Button className="bg-slate-900 text-white px-8 rounded-xl h-12" onClick={handleSave}>
-                    {editingId ? 'Atualizar' : 'Salvar'}
+                    {editingId ? 'Atualizar Produto' : 'Salvar Produto'}
                   </Button>
                 </DialogFooter>
               </div>
@@ -240,7 +269,7 @@ const Products = () => {
               <div className="lg:col-span-2 bg-slate-900 p-8 text-white space-y-8">
                 <div className="space-y-2">
                   <h3 className="text-sm font-bold uppercase tracking-widest text-orange-400">Análise de Custo Real</h3>
-                  <p className="text-xs text-slate-400">Baseado no filamento selecionado.</p>
+                  <p className="text-xs text-slate-400">Tempo Total: {hours}h {minutes}m</p>
                 </div>
 
                 <div className="space-y-6">
@@ -297,6 +326,8 @@ const Products = () => {
           const fee = (settings.channelFees[product.defaultChannel || 'Direto'] / 100) * (product.salePrice || 0);
           const profit = (product.salePrice || 0) - cost - fee;
           const margin = product.salePrice > 0 ? (profit / product.salePrice) * 100 : 0;
+          const p_hours = Math.floor(product.printTimeMinutes / 60);
+          const p_minutes = product.printTimeMinutes % 60;
 
           return (
             <Card key={product.id} className="group bg-white border-slate-200 rounded-3xl overflow-hidden hover:shadow-xl transition-all border">
@@ -307,9 +338,12 @@ const Products = () => {
                   ) : (
                     <Package size={48} className="text-slate-200" />
                   )}
-                  <div className="absolute top-4 left-4">
+                  <div className="absolute top-4 left-4 flex flex-col gap-2">
                     <Badge className="bg-white/80 backdrop-blur-md text-slate-900 border-none shadow-sm">
                       {filament?.name || 'Material'}
+                    </Badge>
+                    <Badge variant="outline" className="bg-slate-900/5 backdrop-blur-md border-none text-[10px] font-bold">
+                      {p_hours > 0 ? `${p_hours}h ` : ''}{p_minutes}m
                     </Badge>
                   </div>
                   <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -334,17 +368,17 @@ const Products = () => {
                   <h3 className="text-lg font-bold text-slate-900 truncate">{product.name}</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Custo</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">Custo Total</p>
                       <p className="text-sm font-bold text-slate-900">{settings.currency} {(cost + fee).toFixed(2)}</p>
                     </div>
                     <div className="p-3 rounded-xl bg-orange-50 border border-orange-100">
-                      <p className="text-[10px] font-bold text-orange-600 uppercase">Venda</p>
+                      <p className="text-[10px] font-bold text-orange-600 uppercase">Preço Venda</p>
                       <p className="text-sm font-bold text-orange-700">{settings.currency} {(product.salePrice || 0).toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Lucro</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">Lucro Líquido</p>
                       <p className={cn("text-xl font-black", profit > 0 ? "text-emerald-500" : "text-rose-500")}>
                         {settings.currency} {profit.toFixed(2)}
                       </p>
