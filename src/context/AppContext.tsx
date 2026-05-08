@@ -46,6 +46,7 @@ export interface Sale {
   printerId?: string;
   shippingCost?: number;
   shippingPaidBy: ShippingPaidBy;
+  customerName?: string;
 }
 
 export interface Expense {
@@ -165,7 +166,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         weightGrams: Number(p.weight_grams), printTimeMinutes: Number(p.print_time_minutes),
         filamentId: p.filament_id, salePrice: Number(p.sale_price),
         additionalCost: Number(p.additional_cost), defaultChannel: p.default_channel as SaleChannel,
-        imageUrl: p.image_url
+        imageUrl: p.imageUrl
       })));
 
       if (sls) setSales(sls.map(s => ({
@@ -173,7 +174,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         quantity: s.quantity, channel: s.channel as SaleChannel,
         status: s.status as SaleStatus, customPrice: s.custom_price ? Number(s.custom_price) : undefined,
         printerId: s.printer_id, shippingCost: Number(s.shipping_cost),
-        shippingPaidBy: s.shipping_paid_by as ShippingPaidBy
+        shippingPaidBy: s.shipping_paid_by as ShippingPaidBy,
+        customerName: s.customer_name
       })));
 
       if (exp) setExpenses(exp.map(e => ({
@@ -295,14 +297,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addSale = async (s: Omit<Sale, 'id'>) => {
     if (!session) return;
-    const { error } = await supabase.from('sales').insert([{
+    
+    // 1. Registrar a venda
+    const { data: newSale, error: saleError } = await supabase.from('sales').insert([{
       product_id: s.productId, quantity: s.quantity, channel: s.channel,
       status: s.status, custom_price: s.customPrice, printer_id: s.printerId,
       shipping_cost: s.shipping_cost, shipping_paid_by: s.shipping_paid_by,
-      user_id: session.user.id, date: s.date
-    }]);
-    if (error) showError("Erro ao registrar venda.");
-    else fetchData(session.user.id);
+      user_id: session.user.id, date: s.date, customer_name: s.customerName
+    }]).select().single();
+
+    if (saleError) {
+      showError("Erro ao registrar venda.");
+      return;
+    }
+
+    // 2. Baixar estoque automaticamente
+    const product = products.find(p => p.id === s.productId);
+    if (product) {
+      const filament = filaments.find(f => f.id === product.filamentId);
+      if (filament) {
+        const consumedWeight = Number(product.weightGrams) * Number(s.quantity);
+        const newStock = Math.max(0, Number(filament.stockGrams) - consumedWeight);
+        
+        await supabase.from('filaments')
+          .update({ stock_grams: newStock })
+          .eq('id', filament.id);
+      }
+    }
+
+    fetchData(session.user.id);
   };
 
   const updateSale = async (id: string, s: Partial<Sale>) => {
@@ -311,7 +334,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       product_id: s.productId, quantity: s.quantity, channel: s.channel,
       status: s.status, custom_price: s.customPrice, printer_id: s.printerId,
       shipping_cost: s.shipping_cost, shipping_paid_by: s.shipping_paid_by,
-      date: s.date
+      date: s.date, customer_name: s.customerName
     }).eq('id', id);
     if (error) showError("Erro ao atualizar venda.");
     else fetchData(session.user.id);
