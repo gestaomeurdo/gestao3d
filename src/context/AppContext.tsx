@@ -163,7 +163,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (prod) setProducts(prod.map(p => ({
         id: p.id, name: p.name, category: p.category,
         weightGrams: Number(p.weight_grams), printTimeMinutes: Number(p.print_time_minutes),
-        filamentId: p.filament_id, sale_price: Number(p.sale_price),
+        filamentId: p.filament_id, salePrice: Number(p.sale_price),
         additionalCost: Number(p.additional_cost), defaultChannel: p.default_channel as SaleChannel,
         imageUrl: p.image_url
       })));
@@ -277,7 +277,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateProduct = async (id: string, p: Partial<Product>) => {
     if (!session) return;
     const { error } = await supabase.from('products').update({
-      name: p.name, category: p.category, weight_grams: p.weight_grams,
+      name: p.name, category: p.category, weight_grams: p.weightGrams,
       print_time_minutes: p.printTimeMinutes, filament_id: p.filamentId,
       sale_price: p.salePrice, additional_cost: p.additionalCost,
       default_channel: p.defaultChannel, image_url: p.imageUrl
@@ -309,7 +309,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!session) return;
     const { error } = await supabase.from('sales').update({
       product_id: s.productId, quantity: s.quantity, channel: s.channel,
-      status: s.status, custom_price: s.custom_price, printer_id: s.printerId,
+      status: s.status, custom_price: s.customPrice, printer_id: s.printerId,
       shipping_cost: s.shipping_cost, shipping_paid_by: s.shipping_paid_by,
       date: s.date
     }).eq('id', id);

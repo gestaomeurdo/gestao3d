@@ -53,9 +53,9 @@ const Products = () => {
     const baseCost = filamentCost + energyCost + (formData.additionalCost || 0);
     
     const feePercent = settings.channelFees[formData.defaultChannel || 'Direto'];
-    const fee = (feePercent / 100) * formData.salePrice;
+    const fee = (feePercent / 100) * (formData.salePrice || 0);
     
-    const profit = formData.salePrice - baseCost - fee;
+    const profit = (formData.salePrice || 0) - baseCost - fee;
     const margin = formData.salePrice > 0 ? (profit / formData.salePrice) * 100 : 0;
     
     const suggest30 = (baseCost) / (1 - (feePercent/100) - 0.30);
@@ -294,9 +294,9 @@ const Products = () => {
         {filteredProducts.map((product) => {
           const cost = calculateProductCost(product);
           const filament = filaments.find(f => f.id === product.filamentId);
-          const fee = (settings.channelFees[product.defaultChannel || 'Direto'] / 100) * product.salePrice;
-          const profit = product.salePrice - cost - fee;
-          const margin = (profit / product.salePrice) * 100;
+          const fee = (settings.channelFees[product.defaultChannel || 'Direto'] / 100) * (product.salePrice || 0);
+          const profit = (product.salePrice || 0) - cost - fee;
+          const margin = product.salePrice > 0 ? (profit / product.salePrice) * 100 : 0;
 
           return (
             <Card key={product.id} className="group bg-white border-slate-200 rounded-3xl overflow-hidden hover:shadow-xl transition-all border">
@@ -339,7 +339,7 @@ const Products = () => {
                     </div>
                     <div className="p-3 rounded-xl bg-orange-50 border border-orange-100">
                       <p className="text-[10px] font-bold text-orange-600 uppercase">Venda</p>
-                      <p className="text-sm font-bold text-orange-700">{settings.currency} {product.salePrice.toFixed(2)}</p>
+                      <p className="text-sm font-bold text-orange-700">{settings.currency} {(product.salePrice || 0).toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-slate-100">
