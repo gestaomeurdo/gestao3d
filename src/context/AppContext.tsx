@@ -268,9 +268,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!session) return;
     const { error } = await supabase.from('products').insert([{
       name: p.name, category: p.category, weight_grams: p.weightGrams,
-      print_time_minutes: p.printTimeMinutes, filament_id: p.filament_id,
-      sale_price: p.salePrice, additional_cost: p.additional_cost,
-      default_channel: p.default_channel, image_url: p.imageUrl,
+      print_time_minutes: p.printTimeMinutes, filament_id: p.filamentId,
+      sale_price: p.salePrice, additional_cost: p.additionalCost,
+      default_channel: p.defaultChannel, image_url: p.imageUrl,
       user_id: session.user.id
     }]);
     if (error) showError("Erro ao salvar produto.");
@@ -280,10 +280,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateProduct = async (id: string, p: Partial<Product>) => {
     if (!session) return;
     const { error } = await supabase.from('products').update({
-      name: p.name, category: p.category, weight_grams: p.weight_grams,
-      print_time_minutes: p.print_time_minutes, filament_id: p.filament_id,
-      sale_price: p.sale_price, additional_cost: p.additional_cost,
-      default_channel: p.default_channel, image_url: p.imageUrl
+      name: p.name, category: p.category, weight_grams: p.weightGrams,
+      print_time_minutes: p.printTimeMinutes, filament_id: p.filamentId,
+      sale_price: p.salePrice, additional_cost: p.additionalCost,
+      default_channel: p.defaultChannel, image_url: p.imageUrl
     }).eq('id', id);
     if (error) showError("Erro ao atualizar produto.");
     else fetchData(session.user.id);
@@ -299,16 +299,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addSale = async (s: Omit<Sale, 'id'>) => {
     if (!session) return;
     
+    // Converter strings vazias de campos UUID para null para evitar erros no Postgres
+    const printerId = s.printerId === '' ? null : s.printerId;
+    const productId = s.productId === '' ? null : s.productId;
+
     // 1. Registrar a venda
     const { data: newSale, error: saleError } = await supabase.from('sales').insert([{
-      product_id: s.productId, quantity: s.quantity, channel: s.channel,
-      status: s.status, custom_price: s.customPrice, printer_id: s.printerId,
+      product_id: productId, quantity: s.quantity, channel: s.channel,
+      status: s.status || 'fila', custom_price: s.customPrice, printer_id: printerId,
       shipping_cost: s.shipping_cost, shipping_paid_by: s.shipping_paid_by,
       user_id: session.user.id, date: s.date, customer_name: s.customerName
     }]).select().single();
 
     if (saleError) {
-      showError("Erro ao registrar venda.");
+      console.error("[AppContext] Erro ao registrar venda:", saleError);
+      showError("Erro ao registrar venda. Verifique os dados.");
       return;
     }
 
@@ -331,14 +336,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateSale = async (id: string, s: Partial<Sale>) => {
     if (!session) return;
+    
+    const printerId = s.printerId === '' ? null : s.printerId;
+    const productId = s.productId === '' ? null : s.productId;
+
     const { error } = await supabase.from('sales').update({
-      product_id: s.productId, quantity: s.quantity, channel: s.channel,
-      status: s.status, custom_price: s.customPrice, printer_id: s.printerId,
+      product_id: productId, quantity: s.quantity, channel: s.channel,
+      status: s.status, custom_price: s.customPrice, printer_id: printerId,
       shipping_cost: s.shipping_cost, shipping_paid_by: s.shipping_paid_by,
       date: s.date, customer_name: s.customerName
     }).eq('id', id);
-    if (error) showError("Erro ao atualizar venda.");
-    else fetchData(session.user.id);
+
+    if (error) {
+      console.error("[AppContext] Erro ao atualizar venda:", error);
+      showError("Erro ao atualizar venda.");
+    } else {
+      fetchData(session.user.id);
+    }
   };
 
   const deleteSale = async (id: string) => {
